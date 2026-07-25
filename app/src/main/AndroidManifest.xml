@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Android 13+ で通知を出すために必須 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Doze 中でも正確な時刻に発火させるための正確なアラーム権限 (Android 12+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- ロック画面上でも緊急通知を全画面表示するため -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- 再起動後にアラームを再スケジュールするため -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- バッテリー最適化の対象外設定へ誘導するため -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- DND(おやすみモード)ポリシーへのアクセスを宣言 -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <!-- 通知が溜まっている/ロック解除中でも全画面アラームを最前面に出すため（他のアプリの上に表示） -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:name=".SubmissionUltraApp"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SubmissionUltra">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.SubmissionUltra"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 緊急通知が鳴ったときに全画面で出るアラーム画面。ロック画面上でも表示する。 -->
+        <activity
+            android:name=".ui.alarm.EmergencyAlarmActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.SubmissionUltra" />
+
+        <!-- 緊急通知の発火本体を受け取る。AlarmManager からのみ呼ばれるため exported=false -->
+        <receiver
+            android:name=".notification.AlarmReceiver"
+            android:exported="false" />
+
+        <!-- 緊急通知の「完了にする」アクションを受け取る。 -->
+        <receiver
+            android:name=".notification.EmergencyActionReceiver"
+            android:exported="false" />
+
+        <!-- 締切3日前からのリマインダーを受け取る。AlarmManager からのみ呼ばれる -->
+        <receiver
+            android:name=".notification.ReminderReceiver"
+            android:exported="false" />
+
+        <!-- 端末再起動後にアラームを再スケジュールする -->
+        <receiver
+            android:name=".notification.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
