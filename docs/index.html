@@ -7,43 +7,205 @@
 <meta name="description" content="提出期限ではなく、まだ間に合う「最後の開始時刻」を知らせて提出忘れを防ぐ Android アプリ。">
 <link rel="icon" href="icon.png">
 <style>
-  :root { color-scheme: light dark; }
-  body {
-    max-width: 42rem;
-    margin: 0 auto;
-    padding: 2rem 1.25rem 4rem;
-    font-family: system-ui, sans-serif;
-    line-height: 1.8;
-    color: #141820;
-    background: #fff;
+  /* 配色はアプリ本体(ui/theme/Color.kt)と同じ固定パレット。
+     動的カラーは使わず、面の階層と文字の太さだけで情報の優先度を表す。 */
+  :root {
+    color-scheme: light dark;
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --surface-variant: #e8ecf2;
+    --ink: #141820;
+    --muted: #515c69;
+    --outline: #c2cad4;
+    --outline-variant: #dde3ea;
+    --accent: #1b5fce;
+    --accent-soft: #d9e4fb;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(20, 24, 32, .06), 0 8px 24px rgba(20, 24, 32, .05);
   }
-  h1 { font-size: 1.75rem; margin: 0; }
-  h2 { font-size: 1.15rem; margin: 3rem 0 0.75rem; }
-  p, ul, table { margin: 0.75rem 0; }
-  ul { padding-left: 1.25rem; }
-  li { margin: 0.35rem 0; }
-  a { color: #1b5fce; }
-  header { display: flex; align-items: center; gap: 1rem; }
-  header img { width: 64px; height: 64px; border-radius: 14px; }
-  .lead { font-size: 1.05rem; }
-  .formula {
-    border: 1px solid #c2cad4;
-    border-radius: 8px;
-    padding: 1rem;
-    text-align: center;
-    font-weight: 700;
-  }
-  .muted { color: #515c69; font-size: 0.9rem; }
-  table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
-  th, td { border-bottom: 1px solid #ddd; padding: 0.5rem; text-align: left; vertical-align: top; }
-  th { color: #515c69; font-weight: 500; white-space: nowrap; }
-  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
+
   @media (prefers-color-scheme: dark) {
-    body { color: #e8ecf2; background: #0e1116; }
-    a { color: #9cbeff; }
-    .formula { border-color: #3a4450; }
-    .muted, th { color: #a9b4c2; }
-    th, td, footer { border-color: #2a323c; }
+    :root {
+      --bg: #0e1116;
+      --surface: #171c23;
+      --surface-variant: #232b35;
+      --ink: #e8ecf2;
+      --muted: #a9b4c2;
+      --outline: #3a4450;
+      --outline-variant: #2a323c;
+      --accent: #9cbeff;
+      --accent-soft: #1c3a6e;
+      --shadow: none;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 4rem;
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+    font-size: 16px;
+    line-height: 1.9;
+    letter-spacing: .01em;
+    color: var(--ink);
+    background: var(--bg);
+    text-wrap: pretty;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: .01em;
+    margin: 0;
+  }
+
+  /* 見出しは小さく・上に細い罫線。本文より目立たせすぎない。 */
+  h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.5;
+    margin: 3.5rem 0 1rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--outline-variant);
+  }
+
+  p { margin: 1rem 0; }
+
+  strong { font-weight: 700; }
+
+  a {
+    color: var(--accent);
+    text-decoration-thickness: 1px;
+    text-underline-offset: .2em;
+  }
+  a:hover { text-decoration-thickness: 2px; }
+
+  .muted {
+    color: var(--muted);
+    font-size: .925rem;
+    line-height: 1.8;
+  }
+
+  /* --- ヘッダー --- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 1.125rem;
+    margin-bottom: 2rem;
+  }
+  header img {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    flex-shrink: 0;
+  }
+  header .muted {
+    margin: .125rem 0 0;
+    font-size: .875rem;
+    letter-spacing: .04em;
+  }
+
+  /* --- リード文 --- */
+  .lead {
+    font-size: 1.125rem;
+    line-height: 1.85;
+    margin: 0 0 .5rem;
+  }
+
+  /* --- 中核の式 --- */
+  .formula {
+    margin: 1.5rem 0;
+    padding: 1.75rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.7;
+    letter-spacing: .02em;
+  }
+
+  /* --- 主な機能 --- */
+  ul {
+    list-style: none;
+    margin: 1rem 0;
+    padding: 0;
+  }
+  li {
+    margin: .5rem 0;
+    padding: .875rem 1.125rem;
+    background: var(--surface);
+    border: 1px solid var(--outline-variant);
+    border-left: 3px solid var(--outline);
+    border-radius: 10px;
+    line-height: 1.8;
+  }
+  li strong {
+    color: var(--ink);
+    letter-spacing: .02em;
+  }
+
+  /* --- 権限の表 --- */
+  table {
+    width: 100%;
+    margin: 1rem 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--surface);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: .95rem;
+  }
+  th, td {
+    padding: .875rem 1rem;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.7;
+    border-top: 1px solid var(--outline-variant);
+  }
+  tr:first-child th, tr:first-child td { border-top: 0; }
+  th {
+    width: 34%;
+    color: var(--ink);
+    font-weight: 600;
+    background: var(--surface-variant);
+    white-space: normal;
+  }
+  td { color: var(--muted); }
+
+  /* --- フッター --- */
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--outline-variant);
+  }
+  footer p { margin: .75rem 0; }
+
+  /* --- 狭い画面 --- */
+  @media (max-width: 34rem) {
+    body { padding: 2rem 1rem 3rem; line-height: 1.85; }
+    header { gap: .875rem; }
+    header img { width: 60px; height: 60px; border-radius: 15px; }
+    h1 { font-size: 1.375rem; }
+    .lead { font-size: 1.0625rem; }
+    .formula { padding: 1.25rem 1rem; font-size: 1rem; }
+
+    /* 2列の表は縦に積み、ラベルを見出しとして読ませる。 */
+    table, tbody, tr, th, td { display: block; width: 100%; }
+    tr { border-top: 1px solid var(--outline-variant); }
+    tr:first-child { border-top: 0; }
+    th, td { border-top: 0; }
+    th { padding-bottom: .25rem; background: none; }
+    td { padding-top: 0; }
   }
 </style>
 </head>
