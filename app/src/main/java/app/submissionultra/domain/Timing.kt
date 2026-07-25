@@ -17,6 +17,15 @@ object Timing {
     fun criticalStartMillis(assignment: Assignment, marginMinutes: Int): Long =
         assignment.deadlineEpochMillis - (assignment.effortMinutes + marginMinutes) * MINUTE_MILLIS
 
+    /**
+     * 期限を過ぎているか。
+     *
+     * 緊急通知とアラーム画面は「今始めれば間に合う」前提の文言を出すため、期限後もそれを
+     * 出し続けないよう、ここで判定して文言と残り時間表示を切り替える。
+     */
+    fun isOverdue(assignment: Assignment, now: Long = System.currentTimeMillis()): Boolean =
+        now >= assignment.deadlineEpochMillis
+
     /** 緊急度の分類。UI の並べ替えと控えめな色分けにのみ使う。 */
     fun urgency(
         assignment: Assignment,

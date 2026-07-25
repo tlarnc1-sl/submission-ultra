@@ -16,6 +16,7 @@ import app.submissionultra.R
 import app.submissionultra.data.Assignment
 import app.submissionultra.ui.alarm.EmergencyAlarmActivity
 import app.submissionultra.data.deadlineLabel
+import app.submissionultra.domain.Timing
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -37,6 +38,7 @@ object EmergencyNotifier {
     private const val PREFS = "emergency_channel"
     private const val KEY_VERSION = "version"
     private const val KEY_CREATED_WITH_DND_ACCESS = "created_with_dnd_access"
+    private const val KEY_ACKNOWLEDGED_PREFIX = "acknowledged_"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -137,12 +139,14 @@ object EmergencyNotifier {
             .format(timeFormatter)
         val deadlineLabel = assignment.type.deadlineLabel()
 
-        // 本文タップ：通常どおりアプリを開く。
+        // 本文タップ：通常どおりアプリを開く。どの課題から来たかを渡し、
+        // 起動時の rescheduleAll でアラーム画面に引き戻されないようにする。
         val contentIntent = PendingIntent.getActivity(
             context,
             assignment.id.toInt(),
             Intent(context, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(NotificationConstants.EXTRA_ASSIGNMENT_ID, assignment.id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
@@ -169,14 +173,20 @@ object EmergencyNotifier {
 
         val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
 
+        // 期限を過ぎた後も「今始めれば間に合う」と言い続けないよう、文言を切り替える。
+        val overdue = Timing.isOverdue(assignment)
+        val title = if (overdue) "期限を過ぎています" else "今すぐ始めないと間に合わない"
+        val body = if (overdue) {
+            "${assignment.title}\n${deadlineLabel}の $deadline を過ぎました。まだ提出できていません。"
+        } else {
+            "${assignment.title}\n最後の開始時刻を過ぎました。${deadlineLabel}は $deadline です。今始めれば間に合います。"
+        }
+
         val notification = NotificationCompat.Builder(context, currentChannelId(context))
             .setSmallIcon(R.drawable.ic_stat_submission)
-            .setContentTitle("今すぐ始めないと間に合わない")
+            .setContentTitle(title)
             .setContentText("${assignment.title} $deadlineLabel $deadline")
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText("${assignment.title}\n最後の開始時刻を過ぎました。${deadlineLabel}は $deadline です。今始めれば間に合います。"),
-            )
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setSound(alarmSound, AudioAttributes.USAGE_ALARM)
@@ -184,6 +194,9 @@ object EmergencyNotifier {
             .setContentIntent(contentIntent)
             .setFullScreenIntent(fullScreenIntent, true)
             .addAction(0, "完了にする", completeIntent)
+            // スワイプで消して無かったことにできないようにする。消えるのは
+            // 「完了にする」か、本文タップでアプリを開いたときだけ。
+            .setOngoing(true)
             .setAutoCancel(true)
             .build()
 
@@ -223,4 +236,23 @@ object EmergencyNotifier {
 
     /** 緊急通知の ID。レシーバー/アラーム画面から同じ通知をキャンセルするために公開する。 */
     fun emergencyNotificationId(assignmentId: Long): Int = assignmentId.toInt()
+
+    /**
+     * アラーム画面の「開く」で作業に入ったことを記録する。
+     *
+     * 「開く」はアプリを起動し、起動時の rescheduleAll は開始時刻を過ぎた課題をその場で鳴らす。
+     * そのままだとアラーム画面に戻され、二度と作業に入れない無限ループになるため、
+     * 直後の再発火だけを抑える。抑制中も再通知の予約は生きているので、放置すれば必ずまた鳴る。
+     */
+    fun acknowledge(context: Context, assignmentId: Long) {
+        prefs(context).edit()
+            .putLong(KEY_ACKNOWLEDGED_PREFIX + assignmentId, System.currentTimeMillis())
+            .apply()
+    }
+
+    /** 直近に「開く」で作業に入ったか（＝今この瞬間の再発火を抑えるべきか）。 */
+    fun isRecentlyAcknowledged(context: Context, assignmentId: Long): Boolean {
+        val at = prefs(context).getLong(KEY_ACKNOWLEDGED_PREFIX + assignmentId, 0L)
+        return System.currentTimeMillis() - at < NotificationConstants.EMERGENCY_RETRY_INTERVAL_MILLIS
+    }
 }

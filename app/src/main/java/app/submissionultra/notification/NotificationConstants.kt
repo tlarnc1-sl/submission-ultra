@@ -34,6 +34,14 @@ object NotificationConstants {
     /** テスト通知で使うダミー提出物の ID（本番と衝突しない負値）。 */
     const val TEST_ASSIGNMENT_ID = -1L
 
+    /**
+     * 緊急通知を無視されたまま放置されないよう、鳴らし直すまでの間隔。
+     *
+     * 一度きりの発火だと、通知を消した／アラーム画面をホームキーで離れただけで無音に戻ってしまう。
+     * 完了になるか期限を過ぎるまでは、この間隔で鳴らし直す。
+     */
+    const val EMERGENCY_RETRY_INTERVAL_MILLIS = 5 * 60 * 1000L
+
     /** 1 課題あたりのリマインダー枠数（3日前・2日前・1日前・当日 の最大 4 枠）。 */
     const val REMINDER_SLOT_COUNT = 4
 

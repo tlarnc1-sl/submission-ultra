@@ -41,7 +41,8 @@
             </intent-filter>
         </activity>
 
-        <!-- 緊急通知が鳴ったときに全画面で出るアラーム画面。ロック画面上でも表示する。 -->
+        <!-- 緊急通知が鳴ったときに全画面で出るアラーム画面。ロック画面上でも表示する。
+             画面回転などで作り直されると鳴動が途切れるため、構成変更は自前で受け止める。 -->
         <activity
             android:name=".ui.alarm.EmergencyAlarmActivity"
             android:exported="false"
@@ -49,6 +50,7 @@
             android:launchMode="singleTask"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
             android:theme="@style/Theme.SubmissionUltra" />
 
         <!-- 緊急通知の発火本体を受け取る。AlarmManager からのみ呼ばれるため exported=false -->

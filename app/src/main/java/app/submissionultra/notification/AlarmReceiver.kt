@@ -33,6 +33,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 // 発火時点で未完了の場合のみ緊急通知を出す。
                 if (assignment != null && !assignment.isCompleted) {
                     EmergencyNotifier.fireEmergencyNotification(context, assignment)
+                    // 無視されたまま終わらないよう、次の発火を予約しておく。
+                    app.graph.alarmScheduler.scheduleEmergencyRetry(assignment)
                 }
             } finally {
                 pending.finish()

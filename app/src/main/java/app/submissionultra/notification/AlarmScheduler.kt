@@ -30,10 +30,26 @@ class AlarmScheduler(private val context: Context) {
                 scheduleExact(assignment.id, triggerAt)
             } else {
                 // 最後の開始時刻を既に過ぎている未完了課題は、今この瞬間に緊急通知を出す。
+                // ただし「開く」で作業に入った直後だけは鳴らさない（鳴らすとアプリを開けなくなる）。
                 cancel(assignment.id)
-                EmergencyNotifier.fireEmergencyNotification(context, assignment)
+                if (!EmergencyNotifier.isRecentlyAcknowledged(context, assignment.id)) {
+                    EmergencyNotifier.fireEmergencyNotification(context, assignment)
+                }
+                scheduleEmergencyRetry(assignment)
             }
         }
+    }
+
+    /**
+     * 緊急通知を鳴らし直す予約。無視されたまま無音に戻らないようにする。
+     *
+     * 期限を過ぎてまで鳴らし続けるのは、もう間に合わない相手を延々と叩き続けるだけなので、
+     * 次の発火予定が期限を越える場合は打ち切る。完了にすれば [cancel] で止まる。
+     */
+    fun scheduleEmergencyRetry(assignment: Assignment) {
+        val nextAt = System.currentTimeMillis() + NotificationConstants.EMERGENCY_RETRY_INTERVAL_MILLIS
+        if (nextAt >= assignment.deadlineEpochMillis) return
+        scheduleExact(assignment.id, nextAt)
     }
 
     private fun scheduleExact(assignmentId: Long, triggerAtMillis: Long) {
