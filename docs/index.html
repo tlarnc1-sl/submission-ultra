@@ -199,6 +199,27 @@
   }
   td { color: var(--muted); }
 
+  /* --- 更新履歴 --- */
+  /* バージョン番号は英数字なので、そのまま Google Sans Code で表示される。 */
+  .changelog { margin: 1rem 0 0; }
+  .changelog dt {
+    margin-top: 1.75rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+  }
+  .changelog dt:first-of-type { margin-top: 0; }
+  .changelog dd {
+    margin: .25rem 0 0;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .changelog-date {
+    margin-left: .625rem;
+    font-size: .8125rem;
+    font-weight: 400;
+    color: var(--muted);
+  }
+
   /* --- フッター --- */
   footer {
     margin-top: 4rem;
@@ -348,6 +369,27 @@
 <p class="muted">
   過去のバージョンは <a href="https://github.com/tlarnc1-sl/submission-ultra/releases">GitHub Releases</a> でご覧いただけます。
 </p>
+
+<h2>更新履歴</h2>
+
+<!-- 新しいバージョンを出すたびに、いちばん上に追記すること。 -->
+<dl class="changelog">
+  <dt>1.2.0<span class="changelog-date">2026-07-25</span></dt>
+  <dd>
+    独自の省電力機能でアプリを止める OS（HyperOS・MIUI・ColorOS）を検出し、
+    初回起動時に警告するようにしました。「緊急通知の状態」では、どの端末でも検出した OS を表示します。
+  </dd>
+
+  <dt>1.1.1<span class="changelog-date">2026-07-25</span></dt>
+  <dd>
+    全画面アラームを強化しました。期限を過ぎた後は文言とカウントダウンを切り替え、
+    表示中はアラーム音を鳴らし続け、戻るキーでは閉じられないようにしました。
+    通知を無視した場合は5分ごとに鳴らし直します。
+  </dd>
+
+  <dt>1.1.0<span class="changelog-date">2026-07-25</span></dt>
+  <dd>初回公開。</dd>
+</dl>
 
 <footer>
   <p>
