@@ -8,7 +8,7 @@
 <link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* 配色はアプリ本体(ui/theme/Color.kt)と同じ固定パレット。
      動的カラーは使わず、面の階層と文字の太さだけで情報の優先度を表す。 */
@@ -16,13 +16,11 @@
     color-scheme: light dark;
     --bg: #f3f5f8;
     --surface: #ffffff;
-    --surface-variant: #e8ecf2;
     --ink: #141820;
     --muted: #515c69;
     --outline: #c2cad4;
     --outline-variant: #dde3ea;
     --accent: #1b5fce;
-    --accent-soft: #d9e4fb;
     --radius: 12px;
   }
 
@@ -30,13 +28,11 @@
     :root {
       --bg: #0e1116;
       --surface: #171c23;
-      --surface-variant: #232b35;
       --ink: #e8ecf2;
       --muted: #a9b4c2;
       --outline: #3a4450;
       --outline-variant: #2a323c;
       --accent: #9cbeff;
-      --accent-soft: #1c3a6e;
     }
   }
 
@@ -44,11 +40,13 @@
 
   html { -webkit-text-size-adjust: 100%; }
 
+  /* 英数字だけ Google Sans Code。日本語は端末の標準フォントに任せる
+     （指定が無い文字はフォールバックで解決されるので、指定はこの1行で足りる）。 */
   body {
     max-width: 44rem;
     margin: 0 auto;
     padding: 3rem 1.25rem 4rem;
-    font-family: "Google Sans Code", "Zen Maru Gothic", system-ui, -apple-system, "Hiragino Sans", Meiryo, sans-serif;
+    font-family: "Google Sans Code", system-ui, sans-serif;
     font-size: 16px;
     line-height: 1.9;
     letter-spacing: .01em;
@@ -61,11 +59,9 @@
     font-size: 1.6rem;
     font-weight: 700;
     line-height: 1.4;
-    letter-spacing: .01em;
     margin: 0;
   }
 
-  /* 見出しは小さく・上に細い罫線。本文より目立たせすぎない。 */
   h2 {
     font-size: 1rem;
     font-weight: 700;
@@ -76,8 +72,6 @@
   }
 
   p { margin: 1rem 0; }
-
-  strong { font-weight: 700; }
 
   a {
     color: var(--accent);
@@ -92,6 +86,12 @@
     line-height: 1.8;
   }
 
+  ul {
+    margin: 1rem 0;
+    padding-left: 1.375rem;
+  }
+  li { margin: .375rem 0; }
+
   /* --- ヘッダー --- */
   header {
     display: flex;
@@ -105,24 +105,16 @@
     border-radius: 18px;
     flex-shrink: 0;
   }
-  header .eyebrow {
-    margin: .375rem 0 0;
-    font-family: "Google Sans Code", ui-monospace, "SFMono-Regular", monospace;
-    font-size: .8125rem;
-    letter-spacing: .02em;
-    color: var(--muted);
-  }
 
-  /* --- リード文 --- */
   .lead {
     font-size: 1.125rem;
     line-height: 1.85;
-    margin: 0 0 .5rem;
+    margin: 0;
   }
 
   /* --- 中核の式 --- */
   .formula {
-    margin: 1.5rem 0;
+    margin: 1.5rem 0 0;
     padding: 1.75rem 1.25rem;
     background: var(--surface);
     border: 1px solid var(--outline);
@@ -134,73 +126,37 @@
     letter-spacing: .02em;
   }
 
-  /* --- コード引用 --- */
-  pre.code {
-    margin: 1.25rem 0 .5rem;
-    padding: 1.25rem 1.5rem;
-    background: var(--surface);
-    border: 1px solid var(--outline-variant);
-    border-radius: var(--radius);
-    overflow-x: auto;
-    font-family: "Google Sans Code", ui-monospace, "SFMono-Regular", monospace;
-    font-size: .8125rem;
-    line-height: 1.75;
-    color: var(--ink);
-  }
-  pre.code code { font-family: inherit; white-space: pre; }
-  .code-caption {
-    margin: 0 0 1.5rem;
-    font-family: "Google Sans Code", ui-monospace, monospace;
-    font-size: .75rem;
-    color: var(--muted);
-    text-align: right;
-  }
-
-  /* --- 主な機能 --- */
-  ul {
+  /* --- ダウンロード --- */
+  .download-card {
     margin: 1rem 0;
-    padding-left: 1.375rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    text-align: center;
   }
-  li {
-    margin: .5rem 0;
-    line-height: 1.8;
-  }
-  li strong {
-    color: var(--ink);
+  .download-button {
+    display: inline-block;
+    padding: .875rem 1.75rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+    font-size: 1.0625rem;
     letter-spacing: .02em;
+    border-radius: 10px;
+    text-decoration: none;
   }
-
-  /* --- 権限の表 --- */
-  table {
-    width: 100%;
-    margin: 1rem 0;
-    border-collapse: separate;
-    border-spacing: 0;
-    background: var(--surface);
-    border: 1px solid var(--outline-variant);
-    border-radius: var(--radius);
-    overflow: hidden;
-    font-size: .95rem;
+  @media (prefers-color-scheme: dark) {
+    .download-button { color: #0a2a63; }
   }
-  th, td {
-    padding: .875rem 1rem;
-    text-align: left;
-    vertical-align: top;
-    line-height: 1.7;
-    border-top: 1px solid var(--outline-variant);
+  .download-button:hover { opacity: .9; }
+  .download-meta {
+    margin: .875rem 0 0;
+    font-size: .875rem;
+    color: var(--muted);
   }
-  tr:first-child th, tr:first-child td { border-top: 0; }
-  th {
-    width: 34%;
-    color: var(--ink);
-    font-weight: 600;
-    background: var(--surface-variant);
-    white-space: normal;
-  }
-  td { color: var(--muted); }
 
   /* --- 更新履歴 --- */
-  /* バージョン番号は英数字なので、そのまま Google Sans Code で表示される。 */
   .changelog { margin: 1rem 0 0; }
   .changelog dt {
     margin-top: 1.75rem;
@@ -228,38 +184,6 @@
   }
   footer p { margin: .75rem 0; }
 
-  /* --- ダウンロードボタン --- */
-  .download-card {
-    margin: 1rem 0;
-    padding: 1.5rem;
-    background: var(--surface);
-    border: 1px solid var(--outline);
-    border-radius: var(--radius);
-    text-align: center;
-  }
-  .download-button {
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-    padding: .875rem 1.75rem;
-    background: var(--accent);
-    color: var(--bg);
-    font-weight: 700;
-    font-size: 1.0625rem;
-    letter-spacing: .02em;
-    border-radius: 10px;
-    text-decoration: none;
-  }
-  @media (prefers-color-scheme: dark) {
-    .download-button { color: #0a2a63; }
-  }
-  .download-button:hover { opacity: .9; text-decoration: none; }
-  .download-meta {
-    margin: .875rem 0 0;
-    font-size: .875rem;
-    color: var(--muted);
-  }
-
   /* --- 狭い画面 --- */
   @media (max-width: 34rem) {
     body { padding: 2rem 1rem 3rem; line-height: 1.85; }
@@ -268,15 +192,6 @@
     h1 { font-size: 1.375rem; }
     .lead { font-size: 1.0625rem; }
     .formula { padding: 1.25rem 1rem; font-size: 1rem; }
-    pre.code { padding: 1rem; font-size: .75rem; }
-
-    /* 2列の表は縦に積み、ラベルを見出しとして読ませる。 */
-    table, tbody, tr, th, td { display: block; width: 100%; }
-    tr { border-top: 1px solid var(--outline-variant); }
-    tr:first-child { border-top: 0; }
-    th, td { border-top: 0; }
-    th { padding-bottom: .25rem; background: none; }
-    td { padding-top: 0; }
   }
 </style>
 </head>
@@ -284,79 +199,43 @@
 
 <header>
   <img src="icon.png" alt="">
-  <div>
-    <h1>提出物Ultra</h1>
-    <p class="eyebrow">// last safe moment</p>
-  </div>
+  <h1>提出物Ultra</h1>
 </header>
 
 <p class="lead">
-  提出期限を記録するアプリではありません。<strong>まだ間に合う「最後の開始時刻」</strong>を知らせ、提出忘れを防ぐアプリです。
+  締切ではなく、まだ間に合う「最後の開始時刻」を知らせる Android アプリです。
 </p>
-
-<h2>最後の開始時刻</h2>
 
 <p class="formula">最後の開始時刻 ＝ 期限 −（作業時間 ＋ 余裕時間）</p>
 
-<pre class="code"><code>fun criticalStartMillis(assignment: Assignment, marginMinutes: Int): Long =
-    assignment.deadlineEpochMillis - (assignment.effortMinutes + marginMinutes) * MINUTE_MILLIS</code></pre>
-<p class="code-caption">domain/Timing.kt</p>
-
-<p>
-  締切そのものではなく、この時刻を過ぎたらもう間に合わないというラインを計算します。過ぎても未完了なら、提出物Ultraが緊急通知を出します。
-</p>
-
-<p class="muted">
-  作業時間には「本気でやれば終わる時間」を入力します。余裕時間は全課題共通の設定で、初期値は30分です。
-</p>
-
-<h2>主な機能</h2>
+<h2>できること</h2>
 
 <ul>
-  <li><strong>緊急通知</strong> — 最後の開始時刻に、マナーモードやおやすみモードを越えてアラーム音で知らせます</li>
-  <li><strong>全画面アラーム</strong> — ロック画面の上に全画面で表示し、締切までのカウントダウンと「開く／完了にする」を提示します</li>
-  <li><strong>リマインダー通知</strong> — 締切の3日前から毎日。緊急通知とは別扱いで、マナーモードを尊重します</li>
-  <li><strong>リアルタイムのカウントダウン</strong> — 一覧のすべての提出物が、秒単位で残り時間を刻みます</li>
-  <li><strong>完了の記録</strong> — 開始リミットより平均どれだけ早く終えられたかを集計します</li>
+  <li>緊急通知</li>
+  <li>全画面アラーム</li>
+  <li>リマインダー通知</li>
+  <li>カウントダウン</li>
+  <li>完了の記録</li>
 </ul>
-
-<h2>本当に鳴るかを、自分で確かめられます</h2>
-
-<p>
-  Android は最終的な通知設定の主導権を利用者に残しています。ですから「絶対に鳴る」と根拠なく約束はしません。
-  代わりに、<strong>今この端末で緊急通知が成立するかを毎回確認し、本番と同じ通知を実際にテストできる</strong>ようにしています。
-</p>
-
-<p>
-  テスト通知は本番と同じ処理を通ります。通知チャンネル・音・振動・サイレントモードの例外・表示内容まで同一で、
-  違うのは渡すデータがテスト用であることだけです。テストで鳴ったなら、本番でも同じように鳴ります。
-</p>
-
-<p class="muted">
-  必要な設定が足りないときは、曖昧に動作を続けず「緊急通知できない」ことを明示し、該当する端末設定へ案内します。
-</p>
 
 <h2>必要な権限</h2>
 
-<table>
-  <tr><th>通知の表示</th><td>緊急通知・リマインダーを表示するため</td></tr>
-  <tr><th>正確なアラーム</th><td>最後の開始時刻ちょうどに発火させるため</td></tr>
-  <tr><th>おやすみモードへのアクセス</th><td>サイレント中でも緊急通知だけは鳴らすため</td></tr>
-  <tr><th>全画面通知</th><td>ロック画面の上にアラーム画面を出すため</td></tr>
-  <tr><th>他のアプリの上に表示</th><td>通知が溜まっているときでも全画面を最前面に出すため（推奨）</td></tr>
-  <tr><th>バッテリー最適化の除外</th><td>省電力機能による通知の遅延を防ぐため（推奨）</td></tr>
-</table>
+<ul>
+  <li>通知の表示</li>
+  <li>正確なアラーム</li>
+  <li>おやすみモードへのアクセス</li>
+  <li>全画面通知</li>
+  <li>他のアプリの上に表示</li>
+  <li>バッテリー最適化の除外</li>
+</ul>
 
 <h2>プライバシー</h2>
 
-<p>
-  <strong>通信を一切行いません。</strong>入力した提出物や設定は、すべて端末の中だけに保存されます。
-</p>
+<p>通信は行いません。すべては端末の中だけにあります。</p>
 
 <h2>ダウンロード</h2>
 
-<!-- 新しいバージョンをリリースするたびに、docs/submission-ultra.apk を
-     app/release/app-release.apk で上書きし、バージョン表記も更新すること。 -->
+<!-- 新しいバージョンを出すたびに、この APK・バージョン表記・更新履歴を更新すること。 -->
 <div class="download-card">
   <a class="download-button" href="submission-ultra.apk" download>APK をダウンロード</a>
   <p class="download-meta">version 1.2.0 ・ 9.1 MB</p>
@@ -366,26 +245,14 @@
   Google Play にはありません。インストール時、提供元不明のアプリの許可が必要です。
 </p>
 
-<p class="muted">
-  過去のバージョンは <a href="https://github.com/tlarnc1-sl/submission-ultra/releases">GitHub Releases</a> でご覧いただけます。
-</p>
-
 <h2>更新履歴</h2>
 
-<!-- 新しいバージョンを出すたびに、いちばん上に追記すること。 -->
 <dl class="changelog">
   <dt>1.2.0<span class="changelog-date">2026-07-25</span></dt>
-  <dd>
-    独自の省電力機能でアプリを止める OS（HyperOS・MIUI・ColorOS）を検出し、
-    初回起動時に警告するようにしました。「緊急通知の状態」では、どの端末でも検出した OS を表示します。
-  </dd>
+  <dd>省電力機能の強い OS（HyperOS・MIUI・ColorOS）を検出し、初回起動時に警告するようにしました。</dd>
 
   <dt>1.1.1<span class="changelog-date">2026-07-25</span></dt>
-  <dd>
-    全画面アラームを強化しました。期限を過ぎた後は文言とカウントダウンを切り替え、
-    表示中はアラーム音を鳴らし続け、戻るキーでは閉じられないようにしました。
-    通知を無視した場合は5分ごとに鳴らし直します。
-  </dd>
+  <dd>全画面アラームを強化しました。期限後は表示を切り替え、鳴らし続け、戻るキーでは閉じられません。</dd>
 
   <dt>1.1.0<span class="changelog-date">2026-07-25</span></dt>
   <dd>初回公開。</dd>
@@ -393,7 +260,8 @@
 
 <footer>
   <p>
-    <a href="https://github.com/tlarnc1-sl/submission-ultra">ソースコード（GitHub）</a>
+    <a href="https://github.com/tlarnc1-sl/submission-ultra">ソースコード（GitHub）</a><br>
+    <a href="https://github.com/tlarnc1-sl/submission-ultra/releases">過去のバージョン</a>
   </p>
   <p class="muted">
     MIT License — Copyright (c) 2026 tarapon
