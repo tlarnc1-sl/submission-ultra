@@ -18,11 +18,16 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!--
+      allowBackup=false: Android の自動バックアップを使わない。
+      有効にすると、アプリは通信していないのに OS が提出物のデータベースを Google の
+      サーバーへ上げてしまい、「データは端末の中だけにある」と言えなくなる。
+      引き換えに機種変更でデータは引き継げないが、そこは割り切る。
+      アンインストールで確実に消えるので、消したつもりのデータが復活することもない。
+    -->
     <application
         android:name=".SubmissionUltraApp"
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
