@@ -36,7 +36,7 @@ fun ReadinessBanner(
     val body = if (blocking) {
         "この端末では今、緊急通知が成立しません。タップして不足している設定を確認してください。"
     } else {
-        "バッテリー最適化により通知が遅れる可能性があります。タップして確認してください。"
+        "通知が遅れたり、全画面アラームが出ないことがあります。タップして確認してください。"
     }
 
     val container = if (blocking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceVariant

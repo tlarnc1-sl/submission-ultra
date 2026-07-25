@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import app.submissionultra.readiness.OemPowerSettings
 import app.submissionultra.readiness.ReadinessChecker
 import app.submissionultra.readiness.ReadinessItem
 import app.submissionultra.readiness.ReadinessReport
@@ -70,9 +71,30 @@ fun ReadinessScreen(
                     item = item,
                     okColor = ok,
                     alertColor = alert,
-                    onFix = { context.startActivity(ReadinessChecker.settingsIntent(context, item.key)) },
+                    onFix = {
+                        val opened = runCatching {
+                            context.startActivity(ReadinessChecker.settingsIntent(context, item.key))
+                        }.isSuccess
+                        if (!opened) {
+                            messenger.show("設定画面を開けませんでした。端末の設定から操作してください")
+                        }
+                    },
                 )
             }
+
+            DeviceOsSection(
+                alertColor = alert,
+                onOpenAutoStart = {
+                    // ROM 独自の設定画面は非公開のため、開けないことがある。
+                    // その場合は黙って何も起きないのではなく、手動での操作を促す。
+                    val opened = runCatching {
+                        context.startActivity(OemPowerSettings.autoStartIntent(context))
+                    }.isSuccess
+                    if (!opened) {
+                        messenger.show("設定画面を開けませんでした。端末の設定から操作してください")
+                    }
+                },
+            )
 
             OutlinedButton(
                 onClick = {
@@ -82,6 +104,60 @@ fun ReadinessScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("状態を更新")
+            }
+        }
+    }
+}
+
+/**
+ * この端末の OS。どの OS でも必ず名前を出す。
+ *
+ * 独自の省電力機能を持つ OS（HyperOS・MIUI・ColorOS）では、上の項目がすべて OK でも
+ * 通知が遅れうる。許可されたかをアプリから確認する手段が無い以上、
+ * 「解決済み」にできる項目として扱わず、消えない注意としてここに常に出しておく。
+ */
+@Composable
+private fun DeviceOsSection(alertColor: Color, onOpenAutoStart: () -> Unit) {
+    val restrictive = OemPowerSettings.current != null
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (restrictive) alertColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+            )
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            "この端末の OS",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(OemPowerSettings.osName, style = MaterialTheme.typography.titleSmall)
+        Text(
+            OemPowerSettings.osDetail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        if (restrictive) {
+            Text(
+                "${OemPowerSettings.osName} は、Android 標準の設定とは別に、独自の省電力機能で" +
+                    "バックグラウンドのアプリを止めます。上の項目がすべて OK でも、" +
+                    "画面を消している間は通知が遅れることがあります。" +
+                    "端末の設定でこのアプリの「自動起動」を許可してください。" +
+                    "許可されているかどうかは、アプリからは確認できません。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            OutlinedButton(
+                onClick = onOpenAutoStart,
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                Text("自動起動の設定を開く")
             }
         }
     }

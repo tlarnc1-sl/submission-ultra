@@ -15,10 +15,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -28,6 +31,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import app.submissionultra.readiness.OemPowerSettings
+import app.submissionultra.ui.components.OemPowerWarningDialog
 import app.submissionultra.ui.completed.CompletedScreen
 import app.submissionultra.ui.edit.EditScreen
 import app.submissionultra.ui.home.HomeScreen
@@ -59,9 +64,31 @@ private val tabs = listOf(
 
 @Composable
 fun AppRoot() {
+    val context = LocalContext.current
     val navController = rememberNavController()
     // 前面に戻るたびに再確認され、全画面が同じ結果を共有する。手動更新も可能。
     val readiness = rememberReadinessState()
+
+    // 独自の省電力機能を持つ OS では、起動時チェックが全項目 OK でも通知が遅れうる。
+    // その穴だけはアプリから検知できないので、初回起動時に一度だけ正面から知らせる。
+    var oemWarningOs by remember {
+        mutableStateOf(if (OemPowerSettings.shouldWarn(context)) OemPowerSettings.current else null)
+    }
+    oemWarningOs?.let { os ->
+        OemPowerWarningDialog(
+            osName = os.displayName,
+            onOpenSettings = {
+                OemPowerSettings.markWarningShown(context)
+                oemWarningOs = null
+                runCatching { context.startActivity(OemPowerSettings.autoStartIntent(context)) }
+            },
+            onLater = {
+                // 割り込むのはここまで。以降は「緊急通知の状態」に消えない注意として残る。
+                OemPowerSettings.markWarningShown(context)
+                oemWarningOs = null
+            },
+        )
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
