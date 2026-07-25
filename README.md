@@ -28,15 +28,11 @@
 
 Kotlin + Jetpack Compose、Room、DataStore。通信は一切しないので、データは端末の中だけにあります。
 
-## ビルド
+## 環境
 
-Android Studio で開いて Run。SDK Platform 37 が必要です。
-
-配布用の APK を作るときは、`keystore.properties.example` を `keystore.properties` にコピーして自分の鍵の情報を書くと署名されます。鍵とパスワードはリポジトリには入りません。
-
-```bash
-./gradlew assembleRelease
-```
+- compileSdk 37 / targetSdk 36 / minSdk 24
+- JDK 17 以上
+- 署名の設定は `keystore.properties.example` を参照
 
 ## ライセンス
 
