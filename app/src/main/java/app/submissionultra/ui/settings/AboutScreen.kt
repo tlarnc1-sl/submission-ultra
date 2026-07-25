@@ -1,6 +1,8 @@
 package app.submissionultra.ui.settings
 
+import android.content.Intent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.net.toUri
 import app.submissionultra.ui.components.BackTopBar
 import app.submissionultra.ui.formatDate
 
@@ -41,6 +44,9 @@ private const val ICON_PX = 144
 
 /** 配布しているライセンス。リポジトリ直下の LICENSE と一致させること。 */
 private const val LICENSE_NAME = "MIT License"
+
+/** 公開リポジトリ。ここから誰でもソースコードを読める。 */
+private const val REPOSITORY_URL = "https://github.com/tlarnc1-sl/submission-ultra"
 
 @Composable
 internal fun rememberAppInfo(): AppInfo? {
@@ -65,6 +71,7 @@ internal fun rememberAppInfo(): AppInfo? {
 /** このアプリについて：アイコン・アプリ名・バージョン・最終更新日だけを示す画面。 */
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     val info = rememberAppInfo()
 
     Scaffold(
@@ -107,6 +114,33 @@ fun AboutScreen(onBack: () -> Unit) {
             InfoRow("バージョン", "${info.versionName} (${info.versionCode})")
             InfoRow("最終更新日", formatDate(info.lastUpdatedMillis))
             InfoRow("ライセンス", LICENSE_NAME)
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri()),
+                            )
+                        }
+                    }
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    "ソースコード",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    REPOSITORY_URL,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
 
             Text(
                 "このアプリはオープンソースです。誰でもソースコードを読み、自由に利用・改変できます。",

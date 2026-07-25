@@ -88,6 +88,10 @@ app.submissionultra
 
 ## ビルド方法
 
+```bash
+git clone https://github.com/tlarnc1-sl/submission-ultra.git
+```
+
 1. Android Studio でプロジェクトを開く
 2. SDK Platform **37** をインストール（`compileSdk = 37`）
 3. Run
@@ -129,4 +133,6 @@ UI はミニマルであること。装飾のための要素、意味のない�
 
 ## ライセンス
 
-MIT License
+MIT License — Copyright (c) 2026 tarapon
+
+自由に利用・改変・再配布できます。詳細はリポジトリ直下の `LICENSE` を参照してください。
