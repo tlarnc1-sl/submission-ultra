@@ -39,6 +39,7 @@ import app.submissionultra.ui.theme.okColor
 @Composable
 fun SettingsScreen(
     readiness: ReadinessReport,
+    onOpenGuide: () -> Unit,
     onOpenTime: () -> Unit,
     onOpenTest: () -> Unit,
     onOpenStatus: () -> Unit,
@@ -82,6 +83,12 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
+            SettingsRow(
+                title = "使い方",
+                summary = "追加・完了・削除のしかた",
+                onClick = onOpenGuide,
+            )
+            HorizontalDivider()
             SettingsRow(
                 title = "時間の設定",
                 summary = timeSummary,

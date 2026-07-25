@@ -31,11 +31,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import app.submissionultra.onboarding.OnboardingStore
 import app.submissionultra.readiness.OemPowerSettings
 import app.submissionultra.ui.components.OemPowerWarningDialog
 import app.submissionultra.ui.completed.CompletedScreen
 import app.submissionultra.ui.edit.EditScreen
 import app.submissionultra.ui.home.HomeScreen
+import app.submissionultra.ui.onboarding.OnboardingScreen
 import app.submissionultra.ui.settings.AboutScreen
 import app.submissionultra.ui.settings.ReadinessScreen
 import app.submissionultra.ui.settings.SettingsScreen
@@ -50,6 +52,7 @@ object Routes {
     const val SETTINGS_TEST = "settings/test"
     const val SETTINGS_STATUS = "settings/status"
     const val SETTINGS_ABOUT = "settings/about"
+    const val SETTINGS_GUIDE = "settings/guide"
     const val EDIT_WITH_ARG = "edit?id={id}"
     fun edit(id: Long) = "edit?id=$id"
 }
@@ -65,6 +68,20 @@ private val tabs = listOf(
 @Composable
 fun AppRoot() {
     val context = LocalContext.current
+
+    // 初回はチュートリアルだけを出す。ここで抜けている間は下の本体が構成されないので、
+    // 省電力警告のダイアログも重ならず、見終わってから順番に出る。
+    var onboardingDone by remember { mutableStateOf(OnboardingStore.isCompleted(context)) }
+    if (!onboardingDone) {
+        OnboardingScreen(
+            onFinish = {
+                OnboardingStore.markCompleted(context)
+                onboardingDone = true
+            },
+        )
+        return
+    }
+
     val navController = rememberNavController()
     // 前面に戻るたびに再確認され、全画面が同じ結果を共有する。手動更新も可能。
     val readiness = rememberReadinessState()
@@ -96,8 +113,8 @@ fun AppRoot() {
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    // 編集中はナビを隠して作業に集中させる。
-    val showBottomBar = currentRoute != Routes.EDIT_WITH_ARG
+    // 編集中とチュートリアル中はナビを隠して、その画面に集中させる。
+    val showBottomBar = currentRoute != Routes.EDIT_WITH_ARG && currentRoute != Routes.SETTINGS_GUIDE
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -154,10 +171,19 @@ fun AppRoot() {
             composable(Routes.SETTINGS) {
                 SettingsScreen(
                     readiness = readiness.report,
+                    onOpenGuide = { navController.navigate(Routes.SETTINGS_GUIDE) },
                     onOpenTime = { navController.navigate(Routes.SETTINGS_TIME) },
                     onOpenTest = { navController.navigate(Routes.SETTINGS_TEST) },
                     onOpenStatus = { navController.navigate(Routes.SETTINGS_STATUS) },
                     onOpenAbout = { navController.navigate(Routes.SETTINGS_ABOUT) },
+                )
+            }
+            composable(Routes.SETTINGS_GUIDE) {
+                // 見返すだけなので完了フラグは触らない。どちらのボタンでも設定に戻るだけ。
+                OnboardingScreen(
+                    onFinish = { navController.popBackStack() },
+                    finishLabel = "閉じる",
+                    skipLabel = "閉じる",
                 )
             }
             composable(Routes.SETTINGS_ABOUT) {
