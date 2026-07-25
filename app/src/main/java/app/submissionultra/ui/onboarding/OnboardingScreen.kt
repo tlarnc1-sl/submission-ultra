@@ -72,56 +72,61 @@ fun OnboardingScreen(
     val scope = rememberCoroutineScope()
     val sample = rememberSampleItem()
 
-    // 背景は自分で塗る。他の画面は Scaffold が colorScheme.background を塗ってくれるが、
-    // この画面は Scaffold を使わないため、塗らないと window テーマ
-    // (android:Theme.Material.Light = 白固定) が透けて、ダークモードで白地に白文字になる。
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .safeDrawingPadding(),
+    // 背景と文字色は Surface に任せる。他の画面は Scaffold が内部で Surface を使うので
+    // 何もしなくて済むが、この画面は Scaffold を持たない。Modifier.background だけでは
+    // 面が塗られるだけで文字色が伝わらず、LocalContentColor が既定の黒のまま残るため、
+    // ダークモードで暗い背景に黒文字になる。Surface なら両方まとめて供給される。
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
-        HorizontalPager(
-            state = pagerState,
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-        ) { page ->
-            when (page) {
-                0 -> CriticalStartPage()
-                1 -> AddPage(sample)
-                2 -> CompletePage(sample)
-                else -> CompletedTabPage()
-            }
-        }
-
-        val lastPage = pagerState.currentPage == PAGE_COUNT - 1
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center,
+                .fillMaxSize()
+                .safeDrawingPadding(),
         ) {
-            PageDots(currentPage = pagerState.currentPage)
-
-            TextButton(
-                onClick = onFinish,
-                modifier = Modifier.align(Alignment.CenterStart),
-            ) {
-                Text(skipLabel)
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+            ) { page ->
+                when (page) {
+                    0 -> CriticalStartPage()
+                    1 -> AddPage(sample)
+                    2 -> CompletePage(sample)
+                    else -> CompletedTabPage()
+                }
             }
 
-            TextButton(
-                onClick = {
-                    if (lastPage) {
-                        onFinish()
-                    } else {
-                        scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                    }
-                },
-                modifier = Modifier.align(Alignment.CenterEnd),
+            val lastPage = pagerState.currentPage == PAGE_COUNT - 1
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(if (lastPage) finishLabel else "次へ")
+                PageDots(currentPage = pagerState.currentPage)
+
+                TextButton(
+                    onClick = onFinish,
+                    modifier = Modifier.align(Alignment.CenterStart),
+                ) {
+                    Text(skipLabel)
+                }
+
+                TextButton(
+                    onClick = {
+                        if (lastPage) {
+                            onFinish()
+                        } else {
+                            scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                ) {
+                    Text(if (lastPage) finishLabel else "次へ")
+                }
             }
         }
     }

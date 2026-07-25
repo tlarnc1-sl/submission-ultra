@@ -3,6 +3,7 @@ package app.submissionultra.ui.alarm
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -17,14 +18,18 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -39,7 +44,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -48,22 +58,21 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import app.submissionultra.MainActivity
 import app.submissionultra.appGraph
-import app.submissionultra.data.AssignmentType
-import app.submissionultra.data.deadlineLabel
 import app.submissionultra.notification.EmergencyNotifier
 import app.submissionultra.notification.NotificationConstants
-import app.submissionultra.ui.formatDateTime
 import app.submissionultra.ui.theme.SubmissionUltraTheme
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
 
 private data class AlarmData(
     val id: Long = -1L,
     val title: String = "提出物",
     val deadlineMillis: Long = 0L,
-    val type: AssignmentType = AssignmentType.CLASSROOM,
     val teacherName: String? = null,
 )
 
@@ -85,6 +94,7 @@ class EmergencyAlarmActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyDarkSystemBars()
         showOverLockScreen()
         applyIntent(intent)
 
@@ -96,8 +106,6 @@ class EmergencyAlarmActivity : ComponentActivity() {
                 BackHandler(enabled = true) { /* 意図的に何もしない */ }
                 AlarmContent(
                     title = d.title,
-                    deadlineLabel = d.type.deadlineLabel(),
-                    deadlineText = formatDateTime(d.deadlineMillis),
                     deadlineMillis = d.deadlineMillis,
                     teacherName = d.teacherName,
                     onOpen = { openApp(d.id) },
@@ -136,11 +144,23 @@ class EmergencyAlarmActivity : ComponentActivity() {
             id = intent.getLongExtra(NotificationConstants.EXTRA_ASSIGNMENT_ID, -1L),
             title = intent.getStringExtra(NotificationConstants.EXTRA_TITLE) ?: "提出物",
             deadlineMillis = intent.getLongExtra(NotificationConstants.EXTRA_DEADLINE_MILLIS, 0L),
-            type = runCatching {
-                AssignmentType.valueOf(intent.getStringExtra(NotificationConstants.EXTRA_TYPE) ?: "")
-            }.getOrDefault(AssignmentType.CLASSROOM),
             teacherName = intent.getStringExtra(NotificationConstants.EXTRA_TEACHER),
         )
+    }
+
+    /**
+     * 暗い画面に合わせて、ウィンドウ側も暗くする。
+     *
+     * このアプリのウィンドウテーマは Theme.Material.Light 固定なので、放っておくと
+     * (1) Compose が最初のフレームを描くまで白がちらつき、(2) ステータスバーのアイコンが
+     * 黒のままで暗い背景に埋もれる。どちらもここで潰す。
+     */
+    private fun applyDarkSystemBars() {
+        window.setBackgroundDrawable(ColorDrawable(AlarmBackground.toArgb()))
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
     }
 
     private fun showOverLockScreen() {
@@ -267,115 +287,180 @@ private class AlarmSiren(private val context: Context) {
     }
 }
 
-// 緊急を最優先にした、テーマに依存しない固定の見た目：白背景 × 赤文字。中央に集約。
-private val AlarmBackground = Color.White
-private val AlarmRed = Color(0xFFC62828)
-private val AlarmInk = Color(0xFF1A1A1A)
-private val AlarmMuted = Color(0xFF6B6B6B)
+// 緊急を最優先にした、テーマに依存しない固定の見た目。システムのダーク/ライトには追従しない。
+//
+// 暗い面にするのは、鳴るのが夜であることが多いため。全画面の白は反射的に目をそらさせる。
+// 赤は暗い面ではコントラストが落ちるので明るい側へ振ってある（従来の #C62828 は
+// この背景に対して約 3.2:1 しかなく沈む。#FF6B60 なら約 6.6:1）。
+private val AlarmBackground = Color(0xFF121519)
+private val AlarmRed = Color(0xFFFF6B60)
+private val AlarmInk = Color(0xFFF2F5F9)
+private val AlarmMuted = Color(0xFF9AA4B2)
+
+// 上端のハザードテープ。文字を読まなくても「警告」と分かる記号として置く。
+private val HazardRed = Color(0xFFE03A2F)
+private val HazardStripe = Color(0xFFF5F5F5)
+
+private val HazardBarBottomGap = 28.dp
+private val HazardBarHeight = 28.dp
+private val HazardStripeWidth = 24.dp
+private val BorderWidth = 3.dp
+
+/** ボタンは画面幅いっぱいには広げない。押し間違えない大きさを保ちつつ、数字を主役に残す。 */
+private const val ActionButtonWidthFraction = 0.62f
+
+/** 1 文字あたりの送り幅（em 比）。実測より気持ち広く見積もって、切れる側に倒さない。 */
+private const val MonospaceAdvance = 0.65f
+
+/** ミリ秒は主の数字に対するこの比率で小さくする。 */
+private const val MillisSizeRatio = 0.35f
+
+/** 縦に収まらなくなるので、いくら幅があってもここまで。 */
+private const val MaxCountdownSize = 80f
+
+/**
+ * 画面全体の枠。秒が変わる瞬間に最も濃くなるよう、透明度を1秒周期で往復させる。
+ *
+ * 明滅（点滅）にはしない。画面の縁は面積が大きく、高コントラストで点滅させるのは
+ * 光過敏性発作のリスクがあるうえ、情報を持たない装飾が主役のカウントダウンより目立ってしまう。
+ * カウントダウンの秒に同期した脈動なら、画面全体が秒針として働き、主役を打ち消さない。
+ */
+private fun borderAlpha(now: Long): Float {
+    val phase = (now % 1000L) / 1000.0
+    val pulse = (1.0 + cos(2.0 * PI * phase)) / 2.0
+    return (0.25 + 0.60 * pulse).toFloat()
+}
 
 @Composable
 private fun AlarmContent(
     title: String,
-    deadlineLabel: String,
-    deadlineText: String,
     deadlineMillis: Long,
     teacherName: String?,
     onOpen: () -> Unit,
     onComplete: () -> Unit,
 ) {
-    // 現在時刻はここで一元的に刻み、文言と残り時間の両方に効かせる。
-    // 表示中に期限をまたいだ瞬間、そのまま「期限を過ぎています」へ切り替わる。
+    // 現在時刻はここで一元的に刻み、残り時間・状態ラベル・枠の脈動すべてに効かせる。
+    // 表示中に期限をまたいだ瞬間、そのまま超過の表示へ切り替わる。
     val now = rememberFrameTicker()
     val overdue = now >= deadlineMillis
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AlarmBackground),
+            .background(AlarmBackground)
+            .border(BorderWidth, AlarmRed.copy(alpha = borderAlpha(now)))
+            .padding(BorderWidth),
     ) {
+        // 中央に寄せた塊の先頭にテープを置き、課題名のすぐ上に来るようにする。
+        // 左右の余白は内側の列にだけ掛ける。テープは帯として読ませたいので端まで渡す。
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                // 背の低い端末で数字が伸びても切れないようスクロールを許す。
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                if (overdue) "期限を過ぎています" else "今すぐ始めないと間に合わない",
-                color = AlarmRed,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(16.dp))
-            Text(
-                title,
-                color = AlarmInk,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                if (overdue) {
-                    "まだ提出できていません。今すぐ出してください。"
-                } else {
-                    "最後の開始時刻を過ぎました。今始めれば間に合います。"
-                },
-                color = AlarmRed,
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
-            )
+            HazardBar()
+            Spacer(Modifier.height(HazardBarBottomGap))
 
-            Spacer(Modifier.height(24.dp))
-            Countdown(deadlineMillis = deadlineMillis, now = now, overdue = overdue)
-
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "$deadlineLabel $deadlineText",
-                color = AlarmMuted,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-            )
-
-            if (!teacherName.isNullOrBlank()) {
-                Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // 数字を大きく取りたいので左右は詰める。ボタンは幅を絞るので窮屈にはならない。
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(
-                    if (overdue) {
-                        "${teacherName}先生が待っています。"
-                    } else {
-                        "${teacherName}先生の期待を裏切ることになります。"
-                    },
-                    color = AlarmRed,
+                    title,
+                    color = AlarmInk,
                     fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    textAlign = TextAlign.Center,
+                )
+
+                Spacer(Modifier.height(32.dp))
+                // 数字を文の途中に置き、上下と合わせて一文として読ませる。
+                // 「あと … で終わらせてください」／「期限を過ぎて … 経過しています」。
+                // 数だけでは進んでいるのか戻っているのか分からないので、状態もこの文が担う。
+                Text(
+                    if (overdue) "期限を過ぎて" else "あと",
+                    color = AlarmMuted,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(4.dp))
+                Countdown(deadlineMillis = deadlineMillis, now = now, overdue = overdue)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (overdue) "経過しています" else "で終わらせてください",
+                    color = AlarmInk,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
                 )
-            }
 
-            Spacer(Modifier.height(40.dp))
+                if (!teacherName.isNullOrBlank()) {
+                    Spacer(Modifier.height(24.dp))
+                    Text(
+                        "${teacherName}先生が待っています",
+                        color = AlarmRed,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
 
-            Button(
-                onClick = onOpen,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AlarmRed,
-                    contentColor = Color.White,
-                ),
-            ) {
-                Text("開く", fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onComplete,
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.5.dp, AlarmRed),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = AlarmRed),
-            ) {
-                Text("完了にする")
+                Spacer(Modifier.height(48.dp))
+
+                Button(
+                    onClick = onOpen,
+                    modifier = Modifier.fillMaxWidth(ActionButtonWidthFraction),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AlarmRed,
+                        contentColor = AlarmBackground,
+                    ),
+                ) {
+                    Text("開く", fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onComplete,
+                    modifier = Modifier.fillMaxWidth(ActionButtonWidthFraction),
+                    border = BorderStroke(1.5.dp, AlarmRed),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AlarmRed),
+                ) {
+                    Text("完了にする")
+                }
             }
         }
     }
+}
+
+/**
+ * 上端のハザードテープ。斜めの縞を繰り返しタイルで描く。
+ * 動かさない。流れると視線がそちらに移り、カウントダウンと競合する。
+ */
+@Composable
+private fun HazardBar() {
+    val stripe = with(LocalDensity.current) { HazardStripeWidth.toPx() }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(HazardBarHeight)
+            .background(
+                Brush.linearGradient(
+                    colorStops = arrayOf(
+                        0f to HazardRed,
+                        0.5f to HazardRed,
+                        0.5f to HazardStripe,
+                        1f to HazardStripe,
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(stripe, stripe),
+                    tileMode = TileMode.Repeated,
+                ),
+            ),
+    )
 }
 
 /** 毎フレーム現在時刻を刻む（約60fps）。ミリ秒の位が動いて見える。 */
@@ -391,9 +476,13 @@ private fun rememberFrameTicker(): Long {
 }
 
 /**
- * 締切までの残り時間を 0.001 秒刻みでライブ表示。「あと {残り} で終わらせましょう！」。
- * 1 秒未満（ミリ秒）の位は小さめの文字にする。
- * 期限を過ぎたあとは、残り 0 のまま固まらせず「経過時間」に切り替える。
+ * この画面の主役。締切までの残り時間（超過後は経過時間）をライブ表示する。
+ *
+ * 文章で挟まず数字だけを置く。何の時間かは上のラベルが担う。
+ * 1 秒未満は常に 3 桁で出し、止まっていないことを見せ続ける。
+ *
+ * 時が付くと桁が 4 つ増えるので、そのぶん文字を落として 1 行に収める。
+ * 残りが 1 時間を切ると数字が大きくなり、そこから緊迫感が増す。
  */
 @Composable
 private fun Countdown(deadlineMillis: Long, now: Long, overdue: Boolean) {
@@ -404,30 +493,39 @@ private fun Countdown(deadlineMillis: Long, now: Long, overdue: Boolean) {
     val minutes = (elapsedOrRemaining % 3_600_000L) / 60_000L
     val seconds = (elapsedOrRemaining % 60_000L) / 1000L
     val millis = elapsedOrRemaining % 1000L
+
     val main = if (hours > 0L) {
         String.format("%d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format("%d:%02d", minutes, seconds)
     }
-    val sub = String.format(".%03d", millis)
+    val millisText = String.format(".%03d", millis)
 
-    Text(
-        text = buildAnnotatedString {
-            if (!overdue) append("あと ")
-            withStyle(SpanStyle(fontSize = 44.sp, fontWeight = FontWeight.Bold)) { append(main) }
-            withStyle(SpanStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold)) { append(sub) }
-            if (overdue) append(" 経過")
-        },
-        color = AlarmRed,
-        fontSize = 18.sp,
-        textAlign = TextAlign.Center,
-    )
-    Spacer(Modifier.height(4.dp))
-    Text(
-        if (overdue) "1分でも早く出しましょう。" else "で終わらせましょう！",
-        color = AlarmInk,
-        fontWeight = FontWeight.Bold,
-        fontSize = 18.sp,
-        textAlign = TextAlign.Center,
-    )
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        // 等幅フォントなので、字数が決まれば必要な幅も決まる。固定サイズにすると
+        // 幅の狭い端末や桁の多い表示で切れるため、使える幅から入る最大の大きさを逆算する。
+        // 端末の文字サイズ設定（fontScale）も勘定に入れないと、大きく設定した人だけ溢れる。
+        val units = main.length + millisText.length * MillisSizeRatio
+        val fitted = maxWidth.value / (MonospaceAdvance * units * LocalDensity.current.fontScale)
+        val mainSize = fitted.coerceAtMost(MaxCountdownSize).sp
+        val millisSize = mainSize * MillisSizeRatio
+
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(fontSize = mainSize, fontWeight = FontWeight.Bold)) {
+                    append(main)
+                }
+                withStyle(SpanStyle(fontSize = millisSize, fontWeight = FontWeight.Bold)) {
+                    append(millisText)
+                }
+            },
+            color = AlarmRed,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
 }

@@ -28,7 +28,6 @@ object NotificationConstants {
     /** 全画面アラーム画面(EmergencyAlarmActivity)へ表示用に渡す extras。 */
     const val EXTRA_TITLE = "title"
     const val EXTRA_DEADLINE_MILLIS = "deadline_millis"
-    const val EXTRA_TYPE = "type"
     const val EXTRA_TEACHER = "teacher"
 
     /** テスト通知で使うダミー提出物の ID（本番と衝突しない負値）。 */

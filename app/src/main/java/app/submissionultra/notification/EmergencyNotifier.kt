@@ -215,7 +215,6 @@ object EmergencyNotifier {
             putExtra(NotificationConstants.EXTRA_ASSIGNMENT_ID, assignment.id)
             putExtra(NotificationConstants.EXTRA_TITLE, assignment.title)
             putExtra(NotificationConstants.EXTRA_DEADLINE_MILLIS, assignment.deadlineEpochMillis)
-            putExtra(NotificationConstants.EXTRA_TYPE, assignment.type.name)
             putExtra(NotificationConstants.EXTRA_TEACHER, assignment.teacherName)
         }
 
