@@ -9,3 +9,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# 署名鍵とそのパスワードは絶対にコミットしない（公開リポジトリのため特に重要）
+keystore.properties
+*.jks
+*.keystore

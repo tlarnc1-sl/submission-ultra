@@ -105,6 +105,17 @@ git clone https://github.com/tlarnc1-sl/submission-ultra.git
 
 アプリのバージョンは `gradle/libs.versions.toml` の `appVersionName` / `appVersionCode` で一元管理しています。
 
+### 配布用 APK のビルド
+
+配布用の APK には署名が必要です。`keystore.properties.example` を `keystore.properties` にコピーして自分の鍵の情報を記入すると、`release` ビルドが自動で署名されます。
+
+```bash
+./gradlew assembleRelease
+# 出力: app/build/outputs/apk/release/app-release.apk
+```
+
+`keystore.properties` と鍵ファイル（`.jks`）は `.gitignore` 済みで、リポジトリには含まれません。鍵が無い環境でもビルド自体は通りますが、生成された APK は未署名でインストールできません。
+
 `gradle.properties` の `android.disallowKotlinSourceSets=false` は、KSP（Room のコード生成）と AGP 9 の組み込み Kotlin を共存させるために必要です。
 
 ---

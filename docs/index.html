@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>提出物Ultra</title>
+<meta name="description" content="提出期限ではなく、まだ間に合う「最後の開始時刻」を知らせて提出忘れを防ぐ Android アプリ。">
+<link rel="icon" href="icon.png">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 4rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.8;
+    color: #141820;
+    background: #fff;
+  }
+  h1 { font-size: 1.75rem; margin: 0; }
+  h2 { font-size: 1.15rem; margin: 3rem 0 0.75rem; }
+  p, ul, table { margin: 0.75rem 0; }
+  ul { padding-left: 1.25rem; }
+  li { margin: 0.35rem 0; }
+  a { color: #1b5fce; }
+  header { display: flex; align-items: center; gap: 1rem; }
+  header img { width: 64px; height: 64px; border-radius: 14px; }
+  .lead { font-size: 1.05rem; }
+  .formula {
+    border: 1px solid #c2cad4;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    font-weight: 700;
+  }
+  .muted { color: #515c69; font-size: 0.9rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+  th, td { border-bottom: 1px solid #ddd; padding: 0.5rem; text-align: left; vertical-align: top; }
+  th { color: #515c69; font-weight: 500; white-space: nowrap; }
+  footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e8ecf2; background: #0e1116; }
+    a { color: #9cbeff; }
+    .formula { border-color: #3a4450; }
+    .muted, th { color: #a9b4c2; }
+    th, td, footer { border-color: #2a323c; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="icon.png" alt="">
+  <div>
+    <h1>提出物Ultra</h1>
+    <p class="muted">Android アプリ</p>
+  </div>
+</header>
+
+<p class="lead">
+  提出期限を記録するアプリではありません。<strong>まだ間に合う「最後の開始時刻」</strong>を知らせ、提出忘れを防ぐアプリです。
+</p>
+
+<h2>最後の開始時刻</h2>
+
+<p class="formula">最後の開始時刻 ＝ 期限 −（作業時間 ＋ 余裕時間）</p>
+
+<p>
+  締切そのものではなく、「これを過ぎたらもう間に合わない時刻」を計算します。
+  その時刻になっても未完了なら、もう「あとでやる」とは言えません。提出物Ultraは緊急通知を出します。
+</p>
+
+<p class="muted">
+  作業時間は「本気でやれば終わる時間」を入力します。余裕時間は全課題共通の設定で、初期値は30分です。
+</p>
+
+<h2>主な機能</h2>
+
+<ul>
+  <li><strong>緊急通知</strong> — 最後の開始時刻に、マナーモードやおやすみモードを越えてアラーム音で知らせます</li>
+  <li><strong>全画面アラーム</strong> — ロック画面の上に全画面で表示し、締切までのカウントダウンと「開く／完了にする」を提示します</li>
+  <li><strong>リマインダー通知</strong> — 締切の3日前から毎日。緊急通知とは別扱いで、マナーモードを尊重します</li>
+  <li><strong>リアルタイムのカウントダウン</strong> — 一覧のすべての提出物が、秒単位で残り時間を刻みます</li>
+  <li><strong>完了の記録</strong> — 開始リミットより平均どれだけ早く終えられたかを集計します</li>
+</ul>
+
+<h2>本当に鳴るかを、自分で確かめられます</h2>
+
+<p>
+  Android は最終的な通知設定の主導権を利用者に残しています。ですから「絶対に鳴る」と根拠なく約束はしません。
+  代わりに、<strong>今この端末で緊急通知が成立するかを毎回確認し、本番と同じ通知を実際にテストできる</strong>ようにしています。
+</p>
+
+<p>
+  テスト通知は本番と同じ処理を通ります。通知チャンネル・音・振動・サイレントモードの例外・表示内容まで同一で、
+  違うのは渡すデータがテスト用であることだけです。テストで鳴ったなら、本番でも同じように鳴ります。
+</p>
+
+<p class="muted">
+  必要な設定が足りないときは、曖昧に動作を続けず「緊急通知できない」ことを明示し、該当する端末設定へ案内します。
+</p>
+
+<h2>必要な権限</h2>
+
+<table>
+  <tr><th>通知の表示</th><td>緊急通知・リマインダーを表示するため</td></tr>
+  <tr><th>正確なアラーム</th><td>最後の開始時刻ちょうどに発火させるため</td></tr>
+  <tr><th>おやすみモードへのアクセス</th><td>サイレント中でも緊急通知だけは鳴らすため</td></tr>
+  <tr><th>全画面通知</th><td>ロック画面の上にアラーム画面を出すため</td></tr>
+  <tr><th>他のアプリの上に表示</th><td>通知が溜まっているときでも全画面を最前面に出すため（推奨）</td></tr>
+  <tr><th>バッテリー最適化の除外</th><td>省電力機能による通知の遅延を防ぐため（推奨）</td></tr>
+</table>
+
+<h2>プライバシー</h2>
+
+<p>
+  <strong>通信を一切行いません。</strong>入力した提出物や設定はすべて端末の中だけに保存され、
+  外部に送信されることはありません。アカウント登録も不要です。
+</p>
+
+<h2>ダウンロード</h2>
+
+<p>
+  <a href="https://github.com/tlarnc1-sl/submission-ultra/releases">GitHub Releases から APK を入手できます</a>。
+</p>
+
+<p class="muted">
+  Google Play では配布していません。インストール時に「提供元不明のアプリ」の許可が必要です。
+</p>
+
+<footer>
+  <p>
+    <a href="https://github.com/tlarnc1-sl/submission-ultra">ソースコード（GitHub）</a><br>
+    オープンソースです。誰でもコードを読み、自由に利用・改変できます。
+  </p>
+  <p class="muted">
+    MIT License — Copyright (c) 2026 tarapon
+  </p>
+</footer>
+
+</body>
+</html>
