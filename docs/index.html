@@ -190,6 +190,39 @@
   }
   footer p { margin: .75rem 0; }
 
+  /* --- ダウンロードボタン --- */
+  .download-card {
+    margin: 1rem 0;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .download-button {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .875rem 1.75rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+    font-size: 1.0625rem;
+    letter-spacing: .02em;
+    border-radius: 10px;
+    text-decoration: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    .download-button { color: #0a2a63; }
+  }
+  .download-button:hover { opacity: .9; text-decoration: none; }
+  .download-meta {
+    margin: .875rem 0 0;
+    font-size: .875rem;
+    color: var(--muted);
+  }
+
   /* --- 狭い画面 --- */
   @media (max-width: 34rem) {
     body { padding: 2rem 1rem 3rem; line-height: 1.85; }
@@ -282,12 +315,21 @@
 
 <h2>ダウンロード</h2>
 
-<p>
-  <a href="https://github.com/tlarnc1-sl/submission-ultra/releases">GitHub Releases から APK を入手できます</a>。
-</p>
+<!-- 新しいバージョンをリリースするたびに、docs/submission-ultra.apk を
+     app/release/app-release.apk で上書きし、バージョン表記も更新すること。 -->
+<div class="download-card">
+  <a class="download-button" href="submission-ultra.apk" download>APK をダウンロード</a>
+  <p class="download-meta">version 1.1.0 ・ 9.1 MB</p>
+</div>
 
 <p class="muted">
   Google Play では配布していません。インストール時に「提供元不明のアプリ」の許可が必要です。
+</p>
+
+<p class="muted">
+  過去のバージョンを確認したい場合は
+  <a href="https://github.com/tlarnc1-sl/submission-ultra/releases">GitHub Releases</a>
+  を参照してください。
 </p>
 
 <footer>

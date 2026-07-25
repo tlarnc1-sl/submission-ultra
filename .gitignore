@@ -14,3 +14,6 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+
+# ビルド成果物。配布用APKは docs/submission-ultra.apk に手動でコピーして管理する。
+/app/release
