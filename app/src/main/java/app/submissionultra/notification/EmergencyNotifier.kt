@@ -1,5 +1,6 @@
 package app.submissionultra.notification
 
+import android.app.ActivityManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -8,6 +9,7 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Process
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -224,14 +226,48 @@ object EmergencyNotifier {
      * ロック中は通知の全画面Intentに委ねる。
      */
     private fun maybeLaunchAlarm(context: Context, assignment: Assignment) {
-        if (canLaunchAlarm(context)) {
-            runCatching { context.startActivity(buildAlarmIntent(context, assignment)) }
-        }
+        if (!canLaunchAlarm(context)) return
+        // この課題に着手している最中なら、全画面で叩き出さない（[isWorkingOnIt]）。
+        if (isWorkingOnIt(context, assignment.id)) return
+        runCatching { context.startActivity(buildAlarmIntent(context, assignment)) }
     }
 
     /** バックグラウンドから全画面を自前起動できるか（オーバーレイ権限の有無）。 */
     fun canLaunchAlarm(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
+
+    /**
+     * 通知の全画面 Intent が使えるか。
+     *
+     * Android 14 以降、全画面 Intent は「通話・目覚まし時計のアプリ」以外では既定で拒否され、
+     * 拒否されると setFullScreenIntent は普通のヘッドアップ通知に格下げされる。格下げは
+     * 静かに起きるので、確認しないと「音は鳴るのに全画面が出ない」理由が誰にも分からない。
+     */
+    fun canUseFullScreenIntent(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
+        return context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
+    }
+
+    /**
+     * 「今まさにこの課題に着手している」か（アプリが前面 かつ 直前に「開く」を押している）。
+     *
+     * この 2 つが揃っているとき、画面にはこの課題の残り時間が出ている。そこへ全画面アラームを
+     * 被せても、知らせる相手は既に知っていて、できるのは作業を止めることだけになる。
+     * 前面から離れれば条件が崩れ、次の再発火で必ず鳴る。逃げ道にはならない。
+     */
+    fun isWorkingOnIt(context: Context, assignmentId: Long): Boolean =
+        isRecentlyAcknowledged(context, assignmentId) && isAppInForeground(context)
+
+    /** 自プロセスが前面にあるか。自分のプロセスを見るだけなので追加の権限は要らない。 */
+    private fun isAppInForeground(context: Context): Boolean {
+        val manager = context.getSystemService(ActivityManager::class.java) ?: return false
+        val processes = runCatching { manager.runningAppProcesses }.getOrNull() ?: return false
+        val myPid = Process.myPid()
+        return processes.any {
+            it.pid == myPid &&
+                it.importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+        }
+    }
 
     /** 緊急通知の ID。レシーバー/アラーム画面から同じ通知をキャンセルするために公開する。 */
     fun emergencyNotificationId(assignmentId: Long): Int = assignmentId.toInt()
@@ -252,6 +288,6 @@ object EmergencyNotifier {
     /** 直近に「開く」で作業に入ったか（＝今この瞬間の再発火を抑えるべきか）。 */
     fun isRecentlyAcknowledged(context: Context, assignmentId: Long): Boolean {
         val at = prefs(context).getLong(KEY_ACKNOWLEDGED_PREFIX + assignmentId, 0L)
-        return System.currentTimeMillis() - at < NotificationConstants.EMERGENCY_RETRY_INTERVAL_MILLIS
+        return System.currentTimeMillis() - at < NotificationConstants.EMERGENCY_ACK_WINDOW_MILLIS
     }
 }

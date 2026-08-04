@@ -69,7 +69,7 @@ class AssignmentRepository(
         }
         val margin = settingsRepository.marginMinutes.first()
         val reminderConfig = settingsRepository.reminderConfig.first()
-        alarmScheduler.rescheduleAll(listOf(assignment), margin)
+        alarmScheduler.schedule(assignment, margin)
         reminderScheduler.reschedule(assignment, reminderConfig)
     }
 }

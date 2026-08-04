@@ -30,8 +30,13 @@ object NotificationConstants {
     const val EXTRA_DEADLINE_MILLIS = "deadline_millis"
     const val EXTRA_TEACHER = "teacher"
 
-    /** テスト通知で使うダミー提出物の ID（本番と衝突しない負値）。 */
-    const val TEST_ASSIGNMENT_ID = -1L
+    /**
+     * テスト通知で使うダミー提出物の ID。
+     *
+     * extras の取り出しに失敗したときの既定値（-1）と重なると、空の Intent が
+     * テスト通知を鳴らしてしまう。既定値として現れようのない値にしておく。
+     */
+    const val TEST_ASSIGNMENT_ID = Long.MIN_VALUE
 
     /**
      * 緊急通知を無視されたまま放置されないよう、鳴らし直すまでの間隔。
@@ -40,6 +45,39 @@ object NotificationConstants {
      * 完了になるか期限を過ぎるまでは、この間隔で鳴らし直す。
      */
     const val EMERGENCY_RETRY_INTERVAL_MILLIS = 5 * 60 * 1000L
+
+    /**
+     * 「開く」で作業に入ったあと、再発火を抑える時間。
+     *
+     * [EMERGENCY_RETRY_INTERVAL_MILLIS] より必ず長くする。同じ長さだと、抑制が切れる瞬間と
+     * 再発火の瞬間が重なり、アプリで作業している最中に全画面へ叩き出される。
+     */
+    const val EMERGENCY_ACK_WINDOW_MILLIS = EMERGENCY_RETRY_INTERVAL_MILLIS + 60 * 1000L
+
+    /**
+     * アラームの生存確認（見張り）の間隔。
+     *
+     * 緊急アラームの再発火は「前回の発火に成功したレシーバ」の中でしか予約されない。
+     * プロセスが落ちる・OS に配信を落とされるなどで一度でも鎖が切れると、次にアプリを
+     * 手で開くまで永久に無音になる。それを避けるため、鎖とは独立にこの間隔で全体を引き直す。
+     */
+    const val WATCHDOG_INTERVAL_MILLIS = 6 * 60 * 60 * 1000L
+
+    /**
+     * 見張りが動いていれば、再設定の間隔は [WATCHDOG_INTERVAL_MILLIS] に収まる。
+     * これを大きく超えていたら、その間アプリは止められていた（強制停止・OEM の省電力）。
+     */
+    const val ALARM_STALE_THRESHOLD_MILLIS = WATCHDOG_INTERVAL_MILLIS * 4
+
+    /** 見張りアラームの PendingIntent 要求コード。提出物 ID とは衝突しない負値。 */
+    const val WATCHDOG_REQUEST_CODE = -424242
+
+    /**
+     * 通知領域の目覚ましアイコンから開くための PendingIntent 要求コード。
+     * 通知本文タップ用（要求コード＝提出物 ID）と重なると、後から作った方に extras を
+     * 上書きされてしまうため、提出物 ID になり得ない値にしておく。
+     */
+    const val ALARM_SHOW_REQUEST_CODE = -424243
 
     /** 1 課題あたりのリマインダー枠数（3日前・2日前・1日前・当日 の最大 4 枠）。 */
     const val REMINDER_SLOT_COUNT = 4

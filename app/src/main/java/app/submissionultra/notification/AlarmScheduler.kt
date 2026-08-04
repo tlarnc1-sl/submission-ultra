@@ -5,14 +5,22 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import app.submissionultra.MainActivity
 import app.submissionultra.data.Assignment
 import app.submissionultra.domain.Timing
 
 /**
  * 最後の開始時刻に緊急通知を発火させるための、正確なアラームのスケジューラ。
  *
- * 正確な時刻保証のため AlarmManager.setExactAndAllowWhileIdle() を使う（Doze 中でも発火）。
- * WorkManager は正確な時刻を保証しないため緊急通知には使わない。
+ * 使うのは [AlarmManager.setAlarmClock]。目覚まし時計と同じ扱いになり、Doze・バッテリー
+ * 最適化・App Standby バケットのいずれからも配信を絞られない唯一の API だから。
+ *
+ * setExactAndAllowWhileIdle では足りない。あれは Doze 中は 9 分に 1 回までに制限され、
+ * さらに「めったに開かないアプリ」ほど App Standby バケットが下がって配信枠が削られる。
+ * 提出物アプリは本質的にめったに開かないので、最も締め付けの強いバケットに落ちる。
+ * つまり、いちばん鳴ってほしい状況でいちばん鳴らなくなる API だった。
+ *
+ * WorkManager は正確な時刻を保証しないため、そもそも緊急通知には使わない。
  */
 class AlarmScheduler(private val context: Context) {
 
@@ -20,23 +28,37 @@ class AlarmScheduler(private val context: Context) {
 
     /**
      * 全ての未完了提出物について、最後の開始時刻にアラームを（再）設定する。
-     * 余裕時間の変更・課題の追加編集・再起動時に呼ぶ。
+     * 余裕時間の変更・再起動・アプリ更新・見張りの発火時に呼ぶ。
+     *
+     * ここを通ったこと自体を [AlarmHealth] に記録し、見張りごと止められていた期間を
+     * 後から検出できるようにする。併せて次の見張りも張り直す。
      */
     fun rescheduleAll(active: List<Assignment>, marginMinutes: Int) {
         val now = System.currentTimeMillis()
         for (assignment in active) {
-            val triggerAt = Timing.criticalStartMillis(assignment, marginMinutes)
-            if (triggerAt > now) {
-                scheduleExact(assignment.id, triggerAt)
-            } else {
-                // 最後の開始時刻を既に過ぎている未完了課題は、今この瞬間に緊急通知を出す。
-                // ただし「開く」で作業に入った直後だけは鳴らさない（鳴らすとアプリを開けなくなる）。
-                cancel(assignment.id)
-                if (!EmergencyNotifier.isRecentlyAcknowledged(context, assignment.id)) {
-                    EmergencyNotifier.fireEmergencyNotification(context, assignment)
-                }
-                scheduleEmergencyRetry(assignment)
+            scheduleOne(assignment, marginMinutes, now)
+        }
+        AlarmHealth.recordReschedule(context)
+        scheduleWatchdog()
+    }
+
+    /** 1 課題分の緊急アラームを設定し直す。追加・編集・完了の切り替え時に呼ぶ。 */
+    fun schedule(assignment: Assignment, marginMinutes: Int) {
+        scheduleOne(assignment, marginMinutes, System.currentTimeMillis())
+    }
+
+    private fun scheduleOne(assignment: Assignment, marginMinutes: Int, now: Long) {
+        val triggerAt = Timing.criticalStartMillis(assignment, marginMinutes)
+        if (triggerAt > now) {
+            scheduleExact(assignment.id, triggerAt)
+        } else {
+            // 最後の開始時刻を既に過ぎている未完了課題は、今この瞬間に緊急通知を出す。
+            // ただし「開く」で作業に入った直後だけは鳴らさない（鳴らすとアプリを開けなくなる）。
+            cancel(assignment.id)
+            if (!EmergencyNotifier.isRecentlyAcknowledged(context, assignment.id)) {
+                EmergencyNotifier.fireEmergencyNotification(context, assignment)
             }
+            scheduleEmergencyRetry(assignment)
         }
     }
 
@@ -52,6 +74,12 @@ class AlarmScheduler(private val context: Context) {
         scheduleExact(assignment.id, nextAt)
     }
 
+    /**
+     * 目覚まし時計として時刻を予約する。
+     *
+     * 権限が無い端末では黙って落とさず、不正確でも設定はしておく（何も鳴らないよりましだが、
+     * 時刻の保証は無い）。「正確に通知できない」ことは ReadinessChecker がバナーで明示する。
+     */
     private fun scheduleExact(assignmentId: Long, triggerAtMillis: Long) {
         val pendingIntent = pendingIntentFor(assignmentId)
         val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -61,14 +89,11 @@ class AlarmScheduler(private val context: Context) {
         }
         try {
             if (canExact) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    triggerAtMillis,
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(triggerAtMillis, showAlarmIntent()),
                     pendingIntent,
                 )
             } else {
-                // 正確なアラーム権限が無い場合でも黙って落とさず、不正確でも設定はしておく。
-                // 「正確に通知できない」ことは ReadinessChecker がバナーで明示する。
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
@@ -95,6 +120,42 @@ class AlarmScheduler(private val context: Context) {
     fun scheduleEmergencyTest(delayMillis: Long) {
         scheduleExact(NotificationConstants.TEST_ASSIGNMENT_ID, System.currentTimeMillis() + delayMillis)
     }
+
+    /**
+     * アラームの見張りを張る。
+     *
+     * 再発火の鎖（[scheduleEmergencyRetry]）は、前回の発火に成功したときにしか次を予約しない。
+     * 一度でも配信を落とされれば鎖は黙って切れ、次にアプリを手で開くまで永久に無音になる。
+     * この見張りだけは鎖の外にあり、定期的に全部を引き直して切れた鎖を繋ぎ直す。
+     *
+     * 見張り自体の時刻は厳密でなくてよいので、権限の要らない不正確なアラームで張る。
+     * 目覚まし時計として張ると、鳴らす予定の無い時刻にも通知領域へ目覚ましアイコンが出てしまう。
+     */
+    fun scheduleWatchdog() {
+        alarmManager.setAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            System.currentTimeMillis() + NotificationConstants.WATCHDOG_INTERVAL_MILLIS,
+            watchdogPendingIntent(),
+        )
+    }
+
+    private fun watchdogPendingIntent(): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        NotificationConstants.WATCHDOG_REQUEST_CODE,
+        Intent(context, WatchdogReceiver::class.java),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
+
+    /**
+     * 通知領域の目覚ましアイコンをタップしたときに開く先。
+     * 目覚まし時計として予約する以上、その正体をアプリで示せる必要がある。
+     */
+    private fun showAlarmIntent(): PendingIntent = PendingIntent.getActivity(
+        context,
+        NotificationConstants.ALARM_SHOW_REQUEST_CODE,
+        Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     private fun pendingIntentFor(assignmentId: Long): PendingIntent {
         val intent = Intent(context, AlarmReceiver::class.java).apply {

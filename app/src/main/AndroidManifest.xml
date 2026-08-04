@@ -4,8 +4,23 @@
 
     <!-- Android 13+ で通知を出すために必須 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Doze 中でも正確な時刻に発火させるための正確なアラーム権限 (Android 12+) -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!--
+      正確なアラームの権限。目覚まし時計と同じ扱いで時刻を予約するために要る。
+
+      Android 13+ を対象にすると SCHEDULE_EXACT_ALARM はインストール時に許可されず、
+      ユーザーが設定画面で手動で有効にするまで拒否される。つまり入れた直後の既定状態が
+      「正確な時刻には鳴らない」になってしまう。時刻ちょうどに鳴ることが存在理由のアプリで、
+      それを利用者の手作業に賭けるわけにはいかない。
+
+      目覚まし時計・カレンダーのためにある USE_EXACT_ALARM はインストール時に自動で
+      許可され、ユーザーの操作を一切必要としない。まさにこの用途のための権限なので、
+      こちらを主に使う。SCHEDULE_EXACT_ALARM は USE_EXACT_ALARM が存在しない
+      Android 12 以前のためだけに残す。
+    -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
     <!-- ロック画面上でも緊急通知を全画面表示するため -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- 再起動後にアラームを再スケジュールするため -->
@@ -73,14 +88,24 @@
             android:name=".notification.ReminderReceiver"
             android:exported="false" />
 
-        <!-- 端末再起動後にアラームを再スケジュールする -->
+        <!-- 設定済みのアラームが OS 側で消える出来事（再起動・アプリ更新・時刻変更）を受けて張り直す。
+             特にアプリ更新は、OS がそのアプリのアラームを全てキャンセルするため必須。 -->
         <receiver
-            android:name=".notification.BootReceiver"
+            android:name=".notification.RescheduleReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- アラームの生存を定期的に確かめる見張り。再発火の鎖が切れていれば繋ぎ直す。
+             AlarmManager からのみ呼ばれるため exported=false -->
+        <receiver
+            android:name=".notification.WatchdogReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

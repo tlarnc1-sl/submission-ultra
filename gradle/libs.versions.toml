@@ -2,8 +2,8 @@
 # アプリのバージョン（一元管理）。versionName は semantic(MAJOR.MINOR.PATCH)、
 # appVersionCode は配布ごとに +1 する単調増加の整数（減らさない・再利用しない）。
 # 内部の緊急チャンネル版(emergency_vN)や Room スキーマ版とは無関係。
-appVersionName = "1.5.0"
-appVersionCode = "8"
+appVersionName = "1.6.0"
+appVersionCode = "9"
 agp = "9.3.0"
 coreKtx = "1.19.0"
 junit = "4.13.2"

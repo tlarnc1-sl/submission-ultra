@@ -9,7 +9,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import app.submissionultra.notification.EmergencyNotifier
 import app.submissionultra.notification.NotificationConstants
 import app.submissionultra.ui.AppRoot
@@ -37,7 +36,9 @@ class MainActivity : ComponentActivity() {
         // 起動のたびに、未完了課題のアラームを引き直す。
         // 端末再起動やアプリ強制終了でアラームが失われていても、ここで復旧する。
         // 最後の開始時刻を既に過ぎている課題があれば、この時点で緊急通知が出る。
-        lifecycleScope.launch {
+        // 画面のスコープでは走らせない。画面が回っただけで途中で中断され、一部の提出物だけ
+        // アラームが張られない状態が残りうる。
+        appGraph.appScope.launch {
             appGraph.assignmentRepository.rescheduleAll()
         }
 

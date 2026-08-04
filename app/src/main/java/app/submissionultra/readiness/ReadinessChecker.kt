@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
+import app.submissionultra.notification.AlarmHealth
 import app.submissionultra.notification.EmergencyNotifier
 
 /**
@@ -24,8 +25,10 @@ object ReadinessChecker {
                 checkExactAlarm(context),
                 checkDndAccess(context),
                 checkEmergencyChannel(context),
-                checkBatteryOptimization(context),
+                checkFullScreenIntent(context),
                 checkOverlay(context),
+                checkBatteryOptimization(context),
+                checkAlarmDelivery(context),
             ),
         )
     }
@@ -52,7 +55,44 @@ object ReadinessChecker {
             satisfied = canExact,
             required = true,
             label = "正確な時刻に鳴らせる",
-            detail = "正確なアラームの権限がありません。最後の開始時刻ちょうどに発火できず、遅れる可能性があります。",
+            detail = "正確なアラームの権限がありません。最後の開始時刻ちょうどに発火できず、" +
+                "画面を消している間は数十分から数時間ずれることがあります。",
+        )
+    }
+
+    /**
+     * 通知の全画面 Intent が使えるか。
+     *
+     * Android 14 以降は既定で拒否されることがあり、拒否されると全画面アラームが
+     * ただのヘッドアップ通知に格下げされる。音は鳴るので、確認しないと
+     * 「なぜか全画面が出ない」という形でしか気づけない。
+     */
+    private fun checkFullScreenIntent(context: Context): ReadinessItem {
+        val granted = EmergencyNotifier.canUseFullScreenIntent(context)
+        return ReadinessItem(
+            key = ReadinessKey.FULL_SCREEN_INTENT,
+            satisfied = granted,
+            required = true,
+            label = "ロック画面に全画面で割り込める",
+            detail = "全画面通知が許可されていません。このままでは音は鳴っても、" +
+                "画面いっぱいのアラームにはならず、通知が一枚出るだけになります。",
+        )
+    }
+
+    /**
+     * 直近にアプリが長時間止められていた痕跡があるか。
+     *
+     * 権限ではなく、起きてしまったことの報告。強制停止や OEM の省電力でアラームごと
+     * 消された期間があったことは、この記録からしか分からない。
+     */
+    private fun checkAlarmDelivery(context: Context): ReadinessItem {
+        return ReadinessItem(
+            key = ReadinessKey.ALARM_DELIVERY,
+            satisfied = !AlarmHealth.wasInterrupted(context),
+            required = false,
+            label = "アラームが止められていない",
+            detail = "この 1 週間のうちに、アプリが長時間止められていた形跡があります。その間、緊急通知は鳴りませんでした。" +
+                "アプリを強制停止しないでください。端末の設定で「自動起動」を許可すると起きにくくなります。",
         )
     }
 
@@ -88,18 +128,25 @@ object ReadinessChecker {
             satisfied = ignoring,
             required = false,
             label = "バッテリー最適化から除外されている（推奨）",
-            detail = "バッテリー最適化の対象のままだと、アラームが遅延・省略される可能性があります。除外を強く推奨します。",
+            detail = "アラームは目覚まし時計として予約しているのでこの設定に左右されませんが、" +
+                "除外しておくと、鳴った後の処理まで確実に走ります。",
         )
     }
 
+    /**
+     * 全画面を「通知の全画面 Intent」に頼らず自前で最前面に出せるか（＝オーバーレイ権限）。
+     *
+     * 必須にしている理由: OS は画面が点いている時や通知が数件溜まっている時、全画面 Intent を
+     * 発動させないことがある。そのときアラーム画面を出せる手段はこれしか残らない。
+     * 「音は鳴ったが画面は出なかった」を許さないなら、これは推奨ではなく必須になる。
+     */
     private fun checkOverlay(context: Context): ReadinessItem {
-        // 全画面を「通知の全画面Intent」に頼らず自前で最前面に出せるか（＝オーバーレイ権限）。
         val granted = EmergencyNotifier.canLaunchAlarm(context)
         return ReadinessItem(
             key = ReadinessKey.OVERLAY,
             satisfied = granted,
-            required = false,
-            label = "全画面アラームを最前面に表示（推奨）",
+            required = true,
+            label = "全画面アラームを最前面に表示できる",
             detail = "「他のアプリの上に表示」が未許可です。通知が数件溜まっている時や画面ロック解除中に、" +
                 "全画面アラームが出ないことがあります（音・通知は出ます）。",
         )
@@ -138,11 +185,24 @@ object ReadinessChecker {
                     appDetailsIntent(pkg)
                 }
 
+            ReadinessKey.FULL_SCREEN_INTENT ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    Intent(
+                        Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                        Uri.parse("package:$pkg"),
+                    )
+                } else {
+                    appDetailsIntent(pkg)
+                }
+
             ReadinessKey.BATTERY_OPTIMIZATION ->
                 Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$pkg"))
 
             ReadinessKey.OVERLAY ->
                 Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$pkg"))
+
+            // 権限ではないので設定先が無い。強制停止も自動起動もアプリの詳細画面が出発点になる。
+            ReadinessKey.ALARM_DELIVERY -> appDetailsIntent(pkg)
         }
     }
 

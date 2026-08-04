@@ -10,11 +10,23 @@ import app.submissionultra.notification.AlarmScheduler
 import app.submissionultra.notification.EmergencyNotifier
 import app.submissionultra.notification.ReminderNotifier
 import app.submissionultra.notification.ReminderScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * アプリ全体の依存を組み立てる軽量な依存グラフ。Hilt を使わずシンプルに保つ。
  */
 class AppGraph(context: Context) {
+    /**
+     * 画面の生死に左右されない仕事のためのスコープ。
+     *
+     * アラームの引き直しを Activity のスコープで走らせると、途中で画面が回っただけで
+     * 中断され、一部の提出物だけアラームが張られない状態が残りうる。鳴らすための仕事は
+     * 画面より長く生きなければならない。
+     */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val database = AppDatabase.get(context)
     val assignmentDao: AssignmentDao = database.assignmentDao()
     val settingsRepository = SettingsRepository(context)

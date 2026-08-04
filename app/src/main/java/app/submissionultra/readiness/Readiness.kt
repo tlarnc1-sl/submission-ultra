@@ -6,14 +6,16 @@ enum class ReadinessKey {
     EXACT_ALARM,
     DND_ACCESS,
     EMERGENCY_CHANNEL,
-    BATTERY_OPTIMIZATION,
+    FULL_SCREEN_INTENT,
     OVERLAY,
+    BATTERY_OPTIMIZATION,
+    ALARM_DELIVERY,
 }
 
 data class ReadinessItem(
     val key: ReadinessKey,
     val satisfied: Boolean,
-    /** true なら緊急通知の成立に必須。false は強く推奨（バッテリー最適化）。 */
+    /** true なら緊急通知の成立に必須。false は強く推奨、または事後の報告。 */
     val required: Boolean,
     val label: String,
     val detail: String,
