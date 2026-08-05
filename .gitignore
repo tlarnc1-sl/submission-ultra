@@ -17,3 +17,6 @@ keystore.properties
 
 # ビルド成果物。配布用APKは docs/submission-ultra.apk に手動でコピーして管理する。
 /app/release
+
+# デザインの指針。サイトを組むときの手元の参照で、配信物ではない。
+/docs/DESIGN.md
