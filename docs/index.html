@@ -8,190 +8,262 @@
 <link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400&family=Inter:wght@400;500&family=Noto+Sans+JP:wght@400&display=swap" rel="stylesheet">
 <style>
-  /* 配色はアプリ本体(ui/theme/Color.kt)と同じ固定パレット。
-     動的カラーは使わず、面の階層と文字の太さだけで情報の優先度を表す。 */
+  /* docs/DESIGN.md（Cohere 系）に沿った配色・書体・丸み。
+     白い紙面を基調に、色は面とわずかなアクセントだけで持たせる。影は使わず、
+     階層は面の入れ替え・細い罫線・角の丸みで作る。 */
   :root {
-    color-scheme: light dark;
-    --bg: #f3f5f8;
-    --surface: #ffffff;
-    --ink: #141820;
-    --muted: #515c69;
-    --outline: #c2cad4;
-    --outline-variant: #dde3ea;
-    --accent: #1b5fce;
-    --radius: 12px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0e1116;
-      --surface: #171c23;
-      --ink: #e8ecf2;
-      --muted: #a9b4c2;
-      --outline: #3a4450;
-      --outline-variant: #2a323c;
-      --accent: #9cbeff;
-    }
+    color-scheme: light;
+    --primary: #17171c;
+    --cohere-black: #000000;
+    --ink: #212121;
+    --body-muted: #616161;
+    --muted: #93939f;
+    --slate: #75758a;
+    --canvas: #ffffff;
+    --soft-stone: #eeece7;
+    --hairline: #d9d9dd;
+    --card-border: #f2f2f2;
+    --action-blue: #1863dc;
+    --focus-blue: #4c6ee6;
+    --on-dark: #ffffff;
+    /* 本文の左右余白。フッターを紙面の端まで伸ばすのに使い回す。 */
+    --pad: 16px;
   }
 
   * { box-sizing: border-box; }
 
   html { -webkit-text-size-adjust: 100%; }
 
-  /* 英数字だけ Google Sans Code。日本語は端末の標準フォントに任せる
-     （指定が無い文字はフォールバックで解決されるので、指定はこの1行で足りる）。 */
+  /* 書体は display と body で分ける。この分離自体がこの設計の骨格なので、
+     一つのサンセリフに寄せてはいけない（DESIGN.md の Don't）。
+     大見出しだけ Space Grotesk、それ以外は Inter。日本語はどちらも持たないので
+     Noto Sans JP に落ちる。 */
   body {
     max-width: 44rem;
     margin: 0 auto;
-    padding: 3rem 1.25rem 4rem;
-    font-family: "Google Sans Code", system-ui, sans-serif;
+    padding: 56px var(--pad) 0;
+    font-family: Inter, "Noto Sans JP", Arial, ui-sans-serif, system-ui, sans-serif;
     font-size: 16px;
-    line-height: 1.9;
-    letter-spacing: .01em;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: 0;
     color: var(--ink);
-    background: var(--bg);
+    background: var(--canvas);
     text-wrap: pretty;
   }
 
+  /* 紙面で唯一の巨大な字。行間を 1 まで詰め、字送りを負に振って「彫った」見え方にする。
+     大きな字は一つだけ、というのがこの設計の作法。 */
   h1 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    line-height: 1.4;
+    font-family: "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
+    font-size: 60px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -1.2px;
     margin: 0;
   }
 
+  /* 節の見出しは card-heading。区切りは箱ではなく細い罫線と広い余白が担う。 */
   h2 {
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1.5;
-    margin: 3.5rem 0 1rem;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--outline-variant);
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -.32px;
+    margin: 80px 0 24px;
+    padding-top: 32px;
+    border-top: 1px solid var(--hairline);
   }
 
-  p { margin: 1rem 0; }
+  p { margin: 16px 0; }
 
+  /* 本文中のリンクは editorial link の青。塗りには使わない。 */
   a {
-    color: var(--accent);
+    color: var(--action-blue);
     text-decoration-thickness: 1px;
     text-underline-offset: .2em;
   }
   a:hover { text-decoration-thickness: 2px; }
+  a:focus-visible { outline: 2px solid var(--focus-blue); outline-offset: 2px; }
 
   .muted {
-    color: var(--muted);
-    font-size: .925rem;
-    line-height: 1.8;
+    color: var(--body-muted);
+    font-size: 14px;
+    line-height: 1.4;
   }
 
   ul {
-    margin: 1rem 0;
-    padding-left: 1.375rem;
+    margin: 16px 0;
+    padding-left: 20px;
   }
-  li { margin: .375rem 0; }
+  li { margin: 6px 0; }
 
   /* --- ヘッダー --- */
   header {
     display: flex;
     align-items: center;
-    gap: 1.125rem;
-    margin-bottom: 2rem;
+    gap: 20px;
+    margin-bottom: 32px;
   }
+  /* 画像は角を丸めた札として置く。小さい画像の丸みは 8px。 */
   header img {
     width: 72px;
     height: 72px;
-    border-radius: 18px;
+    border-radius: 8px;
     flex-shrink: 0;
   }
 
   .lead {
-    font-size: 1.125rem;
-    line-height: 1.85;
+    font-size: 18px;
+    line-height: 1.4;
     margin: 0;
   }
 
   /* --- 中核の式 --- */
+  /* product-card: 暖かい石色の面に 8px の丸み。影は無い。 */
   .formula {
-    margin: 1.5rem 0 0;
-    padding: 1.75rem 1.25rem;
-    background: var(--surface);
-    border: 1px solid var(--outline);
-    border-radius: var(--radius);
+    margin: 24px 0 0;
+    padding: 32px 24px;
+    background: var(--soft-stone);
+    border-radius: 8px;
     text-align: center;
-    font-size: 1.0625rem;
-    font-weight: 700;
-    line-height: 1.7;
-    letter-spacing: .02em;
+  }
+  .formula-eq {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -.2px;
+  }
+  /* 式に帰結を添える一行。これが無いと、何を計算するかだけを述べて終わってしまう。 */
+  .formula-note {
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--body-muted);
   }
 
   /* --- ダウンロード --- */
   .download-card {
-    margin: 1rem 0;
-    padding: 1.5rem;
-    background: var(--surface);
-    border: 1px solid var(--outline);
-    border-radius: var(--radius);
+    margin: 16px 0;
+    padding: 32px;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
     text-align: center;
   }
+  /* button-primary: 黒に近い塗りのピル。この設計では主ボタンは必ずピルになる。 */
   .download-button {
     display: inline-block;
-    padding: .875rem 1.75rem;
-    background: var(--accent);
-    color: var(--bg);
-    font-weight: 700;
-    font-size: 1.0625rem;
-    letter-spacing: .02em;
-    border-radius: 10px;
+    padding: 12px 24px;
+    background: var(--primary);
+    color: var(--on-dark);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.71;
+    border-radius: 32px;
     text-decoration: none;
   }
-  @media (prefers-color-scheme: dark) {
-    .download-button { color: #0a2a63; }
+  .download-button:hover {
+    background: var(--cohere-black);
+    color: var(--on-dark);
   }
-  .download-button:hover { opacity: .9; }
   .download-meta {
-    margin: .875rem 0 0;
-    font-size: .875rem;
+    margin: 16px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
     color: var(--muted);
   }
 
   /* --- 更新履歴 --- */
-  .changelog { margin: 1rem 0 0; }
-  .changelog dt {
-    margin-top: 1.75rem;
-    font-weight: 700;
-    letter-spacing: .02em;
+  /* 版ごとに枠で囲み、開閉できるようにする。枠の幅は本文と同じで、これまでの占有から変えない。 */
+  .changelog { margin: 16px 0 0; }
+
+  .changelog details {
+    margin-top: 8px;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
   }
-  .changelog dt:first-of-type { margin-top: 0; }
-  .changelog dd {
-    margin: .25rem 0 0;
-    color: var(--muted);
-    line-height: 1.8;
-  }
-  .changelog-date {
-    margin-left: .625rem;
-    font-size: .8125rem;
+  .changelog details:first-of-type { margin-top: 0; }
+
+  .changelog summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    font-size: 16px;
     font-weight: 400;
+    cursor: pointer;
+    list-style: none;
+  }
+  .changelog summary::-webkit-details-marker { display: none; }
+
+  /* 最新版だけ大きく出す。一覧の中で今どれが最新かを、読まずに分かるようにする。
+     太らせず、大きさと字送りだけで示す。 */
+  .changelog details:first-of-type summary {
+    font-size: 24px;
+    line-height: 1.3;
+  }
+
+  .changelog-date {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
     color: var(--muted);
+  }
+
+  /* 開閉を示す矢印。閉じているときは右、開くと下を向く。 */
+  .changelog summary::after {
+    content: "";
+    margin-left: auto;
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-right: 1px solid var(--slate);
+    border-bottom: 1px solid var(--slate);
+    transform: rotate(-45deg);
+    transition: transform .15s;
+  }
+  .changelog details[open] summary::after { transform: rotate(45deg); }
+
+  .changelog details p {
+    margin: 0;
+    padding: 0 20px 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--body-muted);
   }
 
   /* --- フッター --- */
+  /* 紙面で唯一の暗い帯。見出しは白、リンクは白、細かい断りは灰。 */
   footer {
-    margin-top: 4rem;
-    padding-top: 1.75rem;
-    border-top: 1px solid var(--outline-variant);
+    margin: 80px calc(-1 * var(--pad)) 0;
+    padding: 56px var(--pad);
+    background: var(--primary);
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.4;
   }
-  footer p { margin: .75rem 0; }
+  footer p { margin: 12px 0; }
+  footer a { color: var(--on-dark); }
+  footer .muted { color: var(--muted); }
 
   /* --- 狭い画面 --- */
-  @media (max-width: 34rem) {
-    body { padding: 2rem 1rem 3rem; line-height: 1.85; }
-    header { gap: .875rem; }
-    header img { width: 60px; height: 60px; border-radius: 15px; }
-    h1 { font-size: 1.375rem; }
-    .lead { font-size: 1.0625rem; }
-    .formula { padding: 1.25rem 1rem; font-size: 1rem; }
+  /* 大きな字だけを落とす。行間と字送りの詰まりはそのまま保つ。 */
+  @media (max-width: 40rem) {
+    body { padding-top: 32px; }
+    header { gap: 16px; }
+    header img { width: 56px; height: 56px; }
+    h1 { font-size: 36px; letter-spacing: -.72px; }
+    h2 { font-size: 24px; margin-top: 56px; padding-top: 24px; }
+    .lead { font-size: 16px; }
+    .formula { padding: 24px 16px; }
+    .formula-eq { font-size: 18px; }
+    .download-card { padding: 24px; }
+    .changelog details:first-of-type summary { font-size: 20px; }
+    footer { margin-top: 56px; padding: 40px var(--pad); }
   }
 </style>
 </head>
@@ -206,7 +278,10 @@
   締切ではなく、まだ間に合う「最後の開始時刻」を知らせる Android アプリです。
 </p>
 
-<p class="formula">最後の開始時刻 ＝ 期限 −（作業時間 ＋ 余裕時間）</p>
+<div class="formula">
+  <p class="formula-eq">最後の開始時刻 ＝ 期限 −（作業時間 ＋ 余裕時間）</p>
+  <p class="formula-note">この時刻を過ぎても終わっていなければ、鳴ります。</p>
+</div>
 
 <h2>できること</h2>
 
@@ -233,6 +308,16 @@
 
 <p>通信は行いません。バックアップもしないので、すべては端末の中だけにあります。</p>
 
+<h2>つくりかた</h2>
+
+<p>
+  このアプリの開発には Claude Code を使っています。Vibe Coding はしていません。
+</p>
+
+<p class="muted">
+  ありがとう Claude
+</p>
+
 <h2>ダウンロード</h2>
 
 <!-- 新しいバージョンを出すたびに、この APK・バージョン表記・更新履歴を更新すること。 -->
@@ -247,28 +332,42 @@
 
 <h2>更新履歴</h2>
 
-<dl class="changelog">
-  <dt>1.6.0<span class="changelog-date">2026-08-04</span></dt>
-  <dd>緊急通知が時刻どおりに鳴らないことがある問題を直しました。アラームを目覚まし時計と同じ方式で予約するようにして、省電力機能に遅らされなくなっています。アプリを更新したあともアラームが消えなくなり、万一止まっていた場合は状態画面で分かります。</dd>
+<div class="changelog">
+  <details open>
+    <summary>1.6.0<span class="changelog-date">2026-08-04</span></summary>
+    <p>緊急通知が時刻どおりに鳴らないことがある問題を直しました。アラームを目覚まし時計と同じ方式で予約するようにして、省電力機能に遅らされなくなっています。アプリを更新したあともアラームが消えなくなり、万一止まっていた場合は状態画面で分かります。</p>
+  </details>
 
-  <dt>1.5.0<span class="changelog-date">2026-07-25</span></dt>
-  <dd>緊急通知の画面を作り直しました。カウントダウンを主役に項目を絞り、暗い配色とハザードテープ、秒に合わせて脈打つ縁にしています。</dd>
+  <details>
+    <summary>1.5.0<span class="changelog-date">2026-07-25</span></summary>
+    <p>緊急通知の画面を作り直しました。カウントダウンを主役に項目を絞り、暗い配色とハザードテープ、秒に合わせて脈打つ縁にしています。</p>
+  </details>
 
-  <dt>1.4.0<span class="changelog-date">2026-07-25</span></dt>
-  <dd>Android の自動バックアップを無効にしました。データが Google のサーバーに保存されなくなり、アンインストールで確実に消えます。</dd>
+  <details>
+    <summary>1.4.0<span class="changelog-date">2026-07-25</span></summary>
+    <p>Android の自動バックアップを無効にしました。データが Google のサーバーに保存されなくなり、アンインストールで確実に消えます。</p>
+  </details>
 
-  <dt>1.3.0<span class="changelog-date">2026-07-25</span></dt>
-  <dd>初回起動時に、追加・完了・削除のしかたを見せるチュートリアルを追加しました。設定の「使い方」からいつでも見返せます。</dd>
+  <details>
+    <summary>1.3.0<span class="changelog-date">2026-07-25</span></summary>
+    <p>初回起動時に、追加・完了・削除のしかたを見せるチュートリアルを追加しました。設定の「使い方」からいつでも見返せます。</p>
+  </details>
 
-  <dt>1.2.0<span class="changelog-date">2026-07-25</span></dt>
-  <dd>省電力機能の強い OS（HyperOS・MIUI・ColorOS）を検出し、初回起動時に警告するようにしました。</dd>
+  <details>
+    <summary>1.2.0<span class="changelog-date">2026-07-25</span></summary>
+    <p>省電力機能の強い OS（HyperOS・MIUI・ColorOS）を検出し、初回起動時に警告するようにしました。</p>
+  </details>
 
-  <dt>1.1.1<span class="changelog-date">2026-07-25</span></dt>
-  <dd>全画面アラームを強化しました。期限後は表示を切り替え、鳴らし続け、戻るキーでは閉じられません。</dd>
+  <details>
+    <summary>1.1.1<span class="changelog-date">2026-07-25</span></summary>
+    <p>全画面アラームを強化しました。期限後は表示を切り替え、鳴らし続け、戻るキーでは閉じられません。</p>
+  </details>
 
-  <dt>1.1.0<span class="changelog-date">2026-07-25</span></dt>
-  <dd>初回公開。</dd>
-</dl>
+  <details>
+    <summary>1.1.0<span class="changelog-date">2026-07-25</span></summary>
+    <p>初回公開。</p>
+  </details>
+</div>
 
 <footer>
   <p>
