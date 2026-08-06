@@ -32,6 +32,20 @@
     <!-- 通知が溜まっている/ロック解除中でも全画面アラームを最前面に出すため（他のアプリの上に表示） -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!--
+      カレンダーの読み取り。Classroom の課題を手で打ち直させないため。
+
+      Google Classroom は期限のある課題を生徒の Google カレンダーへ自動で載せ、
+      カレンダーアプリがそれを端末に同期している。そこを読めば Classroom に手が届く。
+      Classroom API を叩く道もあるが、そちらは INTERNET と OAuth が要るうえ、
+      学校の管理者がサードパーティアプリを止めていると生徒側ではどうにもならない。
+      端末内を読むだけなら、このアプリは通信しないままでいられる。
+
+      読むのは「カレンダーから取り込む」を押したときだけで、裏では同期しない。
+      許可を求めるのもそのときだけなので、使わない人は一度も読まれずに済む。
+      なお INTERNET は宣言していないので、読んだ内容が端末の外へ出ることはない。
+    -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <!--
       allowBackup=false: Android の自動バックアップを使わない。

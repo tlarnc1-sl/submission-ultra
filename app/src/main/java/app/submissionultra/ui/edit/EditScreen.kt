@@ -1,5 +1,8 @@
 package app.submissionultra.ui.edit
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Column
@@ -45,6 +48,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.compose.material3.AlertDialog
 import app.submissionultra.appGraph
+import app.submissionultra.calendar.CalendarImport
 import app.submissionultra.data.AssignmentType
 import app.submissionultra.data.deadlineLabel
 import app.submissionultra.ui.AppMessenger
@@ -90,6 +94,19 @@ fun EditScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showCalendarPicker by remember { mutableStateOf(false) }
+
+    // 許可を求めるのは「取り込む」を押したときだけ。起動時にまとめて聞かない。
+    // 使わない人はカレンダーを一度も読まれずに済む。
+    val calendarPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            showCalendarPicker = true
+        } else {
+            messenger.show("カレンダーを読む許可がないと取り込めません")
+        }
+    }
 
     val screenTitle = if (state.isEditing) "提出物を編集" else "提出物を追加"
 
@@ -111,6 +128,30 @@ fun EditScreen(
                     .padding(Space.lg),
                 verticalArrangement = Arrangement.spacedBy(Space.xl),
             ) {
+                // 新規のときだけ出す。編集中に上書きされると、直していた内容が消える。
+                if (!state.isEditing) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+                        OutlinedButton(
+                            onClick = {
+                                if (CalendarImport.isGranted(context)) {
+                                    showCalendarPicker = true
+                                } else {
+                                    calendarPermission.launch(Manifest.permission.READ_CALENDAR)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("カレンダーから取り込む")
+                        }
+                        Text(
+                            "Classroom の課題は、期限が設定されていればカレンダーアプリに出ます。" +
+                                "名前と期限だけ写すので、作業時間はご自身で入れてください。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = state.title,
                     onValueChange = viewModel::onTitleChange,
@@ -248,6 +289,24 @@ fun EditScreen(
                 TextButton(onClick = { showTimePicker = false }) { Text("取消") }
             },
             text = { TimePicker(state = timeState) },
+        )
+    }
+
+    if (showCalendarPicker) {
+        CalendarPickerDialog(
+            onPick = { item ->
+                viewModel.onTitleChange(item.title)
+                viewModel.onDeadlineChange(item.deadlineMillis)
+                showCalendarPicker = false
+                messenger.show(
+                    if (item.timeKnown) {
+                        "「${item.title}」を写しました。作業時間を入れてください"
+                    } else {
+                        "「${item.title}」を写しました。終日の予定なので締切を 23:59 にしています"
+                    },
+                )
+            },
+            onDismiss = { showCalendarPicker = false },
         )
     }
 
