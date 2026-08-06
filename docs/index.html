@@ -320,10 +320,18 @@
 
 <h2>ダウンロード</h2>
 
-<!-- 新しいバージョンを出すたびに、この APK・バージョン表記・更新履歴を更新すること。 -->
+<!--
+  新しいバージョンを出すたびに、下のリンク・バージョン表記・更新履歴を更新すること。
+  APK はこのリポジトリには置かない。GitHub Releases に置いてここから直接リンクする。
+  docs/ に APK を置くと Cloudflare Pages はリポジトリからビルドする都合上コミットが必要になり、
+  9MB の binary が毎回 git 履歴へ永久に積まれる。リンクの書き換え 1 行の方が軽い。
+
+  download 属性は付けない。別ドメインへのリンクでは無視されるうえ、
+  GitHub が Content-Disposition: attachment を返すので付けなくても添付として降りてくる。
+-->
 <div class="download-card">
-  <a class="download-button" href="submission-ultra.apk" download>APK をダウンロード</a>
-  <p class="download-meta">version 1.6.0 ・ 9.3 MB</p>
+  <a class="download-button" href="https://github.com/tlarnc1-sl/submission-ultra/releases/download/v1.7.0/submission-ultra-1.7.0.apk">APK をダウンロード</a>
+  <p class="download-meta">version 1.7.0 ・ 9.3 MB</p>
 </div>
 
 <p class="muted">
@@ -334,6 +342,12 @@
 
 <div class="changelog">
   <details open>
+    <summary>1.7.0<span class="changelog-date">2026-08-06</span></summary>
+    <p>画面の作りを全体的に見直しました。どの画面でも「いちばん大事なものをひとつだけ」決め、それ以外は一段下げています。緊急通知の画面では残り時間を最上段に移し、白くして画面の中で最も明るいものにしました。これまでは数字が赤で、実は画面のどの文字よりも暗く、大きさの割に目に入りにくい状態でした。1.5.0 で入れた脈打つ縁は、角の丸い端末で四隅が切れるためやめています。</p>
+    <p>カレンダーからの取り込みを追加しました。Classroom の課題は期限を設定すると Google カレンダーに出るので、そこから名前と期限を写せます。読むのはボタンを押したときだけで、裏では同期しません。あわせて、削除するときに確認するようにし、読み上げを使っている場合にカードを完了にできない問題を直しました。</p>
+  </details>
+
+  <details>
     <summary>1.6.0<span class="changelog-date">2026-08-04</span></summary>
     <p>緊急通知が時刻どおりに鳴らないことがある問題を直しました。アラームを目覚まし時計と同じ方式で予約するようにして、省電力機能に遅らされなくなっています。アプリを更新したあともアラームが消えなくなり、万一止まっていた場合は状態画面で分かります。</p>
   </details>
