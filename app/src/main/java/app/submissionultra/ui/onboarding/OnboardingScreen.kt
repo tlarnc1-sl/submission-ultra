@@ -26,6 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,17 +40,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import app.submissionultra.data.Assignment
 import app.submissionultra.data.AssignmentType
 import app.submissionultra.data.SettingsRepository
 import app.submissionultra.domain.Timing
 import app.submissionultra.domain.Urgency
+import app.submissionultra.ui.completed.CompletedStats
+import app.submissionultra.ui.completed.StatsPanel
 import app.submissionultra.ui.components.AssignmentCard
 import app.submissionultra.ui.home.HomeItem
+import app.submissionultra.ui.theme.Radius
+import app.submissionultra.ui.theme.Space
+import app.submissionultra.ui.theme.Stroke
 import kotlinx.coroutines.launch
 
 private const val PAGE_COUNT = 4
@@ -103,19 +108,24 @@ fun OnboardingScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
+                    .padding(horizontal = Space.sm, vertical = Space.md),
                 contentAlignment = Alignment.Center,
             ) {
                 PageDots(currentPage = pagerState.currentPage)
 
+                // 「次へ」と「スキップ」を同じ見た目で左右に置くと、どちらが本筋か分からない。
+                // 読み進めてほしいのは前者なので、そちらだけ塗りのボタンにする。
                 TextButton(
                     onClick = onFinish,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
                     modifier = Modifier.align(Alignment.CenterStart),
                 ) {
                     Text(skipLabel)
                 }
 
-                TextButton(
+                Button(
                     onClick = {
                         if (lastPage) {
                             onFinish()
@@ -134,7 +144,7 @@ fun OnboardingScreen(
 
 @Composable
 private fun PageDots(currentPage: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Space.sm)) {
         repeat(PAGE_COUNT) { index ->
             Box(
                 modifier = Modifier
@@ -167,7 +177,7 @@ private fun OnboardingPage(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 32.dp),
+            .padding(horizontal = Space.xl, vertical = Space.xxl),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -177,7 +187,7 @@ private fun OnboardingPage(
             textAlign = TextAlign.Center,
         )
 
-        Box(modifier = Modifier.padding(vertical = 28.dp)) { visual() }
+        Box(modifier = Modifier.padding(vertical = Space.xl)) { visual() }
 
         Text(
             text = body,
@@ -189,7 +199,7 @@ private fun OnboardingPage(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 12.dp),
+            modifier = Modifier.padding(top = Space.md),
         )
     }
 }
@@ -204,9 +214,9 @@ private fun CriticalStartPage() {
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(Radius.md),
             color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            border = BorderStroke(Stroke.hairline, MaterialTheme.colorScheme.outline),
         ) {
             Text(
                 text = "期限 −（作業時間 ＋ 余裕時間）",
@@ -214,7 +224,7 @@ private fun CriticalStartPage() {
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 24.dp, horizontal = 16.dp),
+                    .padding(vertical = Space.xl, horizontal = Space.lg),
             )
         }
     }
@@ -275,9 +285,9 @@ private fun SwipeDemo(sample: HomeItem) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(Radius.md))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = Space.lg),
             contentAlignment = Alignment.CenterStart,
         ) {
             Icon(
@@ -294,37 +304,23 @@ private fun SwipeDemo(sample: HomeItem) {
     }
 }
 
-/** 完了済みタブの成績パネルの見本。実画面と同じ文言・組み方にする。 */
+/**
+ * 完了済みタブの成績パネルの見本。実画面の [StatsPanel] をそのまま呼ぶ。
+ *
+ * 以前はここに同じ見た目を手で書いていたが、本番が 36sp に対して見本が 32sp、
+ * さらに「対象◯件」の行が抜けており、実画面とずれていた。
+ * 作り物の絵はこうしてずれていくので、[AssignmentCard] と同じく本物を置く。
+ */
 @Composable
 private fun StatsPreview() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            "開始リミットより平均で",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                "2時間30分",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                " 早く完了",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 4.dp),
-            )
-        }
-    }
+    StatsPanel(
+        stats = CompletedStats(
+            averageLeadMillis = SAMPLE_AVERAGE_LEAD_MILLIS,
+            ratedCount = SAMPLE_RATED_COUNT,
+            beforeLimitCount = SAMPLE_BEFORE_LIMIT_COUNT,
+            totalCount = SAMPLE_RATED_COUNT,
+        ),
+    )
 }
 
 /**
@@ -348,6 +344,11 @@ private fun rememberSampleItem(): HomeItem = remember {
         urgency = Urgency.HAS_TIME,
     )
 }
+
+/** 見本の成績。「開始リミットより平均で2時間30分早く完了」を 5 件中 4 件で達成した想定。 */
+private const val SAMPLE_AVERAGE_LEAD_MILLIS = (2 * 60 + 30) * 60 * 1000L
+private const val SAMPLE_RATED_COUNT = 5
+private const val SAMPLE_BEFORE_LIMIT_COUNT = 4
 
 /** 見本の締切は 3 時間後。開始リミットまでまだ余裕がある状態を見せる。 */
 private const val SAMPLE_DEADLINE_AHEAD_MILLIS = 3 * 60 * 60 * 1000L

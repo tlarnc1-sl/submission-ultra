@@ -7,8 +7,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import app.submissionultra.ui.theme.Space
 
 /**
  * 初回起動時に一度だけ出す、OS 独自の省電力機能についての警告。
@@ -33,7 +33,7 @@ fun OemPowerWarningDialog(
         ),
         title = { Text("この端末では通知が遅れることがあります") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Space.md)) {
                 Text(
                     "$osName は、Android 標準の設定とは別に、独自の省電力機能でバックグラウンドの" +
                         "アプリを止めます。通知やアラームの権限をすべて許可していても、" +
