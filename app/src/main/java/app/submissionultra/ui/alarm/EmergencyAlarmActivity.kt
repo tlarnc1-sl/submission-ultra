@@ -18,7 +18,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -66,8 +66,6 @@ import app.submissionultra.notification.EmergencyNotifier
 import app.submissionultra.notification.NotificationConstants
 import app.submissionultra.ui.theme.SubmissionUltraTheme
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
 
 private data class AlarmData(
     val id: Long = -1L,
@@ -290,21 +288,50 @@ private class AlarmSiren(private val context: Context) {
 // 緊急を最優先にした、テーマに依存しない固定の見た目。システムのダーク/ライトには追従しない。
 //
 // 暗い面にするのは、鳴るのが夜であることが多いため。全画面の白は反射的に目をそらさせる。
-// 赤は暗い面ではコントラストが落ちるので明るい側へ振ってある（従来の #C62828 は
-// この背景に対して約 3.2:1 しかなく沈む。#FF6B60 なら約 6.6:1）。
+//
+// 背景 #121519 に対する各色のコントラスト比（実測）:
+//   AlarmNumber  18.3:1   カウントダウン。画面で最も明るい要素にする
+//   AlarmInk     16.7:1   課題名
+//   AlarmMuted    7.3:1   数字を挟む説明の語
+//   AlarmRed      6.6:1   期限超過の語、先生の行、ハザードテープ
+//
+// 数字を白にしたのは、赤 (#FF6B60) が「読める」色ではあっても「最初に目に入る」色では
+// なかったため。以前は数字が 6.6:1 で、補助ラベルの 7.3:1 より暗く、画面上の文字で最下位
+// だった。80sp まで大きくしても輝度で負けていれば視線は先に行かない。
+// 可読性の最適化（WCAG では大きな文字は 3:1 で合格）と、誘目性の最適化は別物である。
+//
+// 引き換えに赤は「状態を表す色」に戻した。通常の残り時間は白、期限を過ぎたときだけ
+// 前後の語が赤になる。色が意味を持つので、DESIGN.md の原則3 とも噛み合う。
 private val AlarmBackground = Color(0xFF121519)
+private val AlarmNumber = Color(0xFFFFFFFF)
 private val AlarmRed = Color(0xFFFF6B60)
 private val AlarmInk = Color(0xFFF2F5F9)
 private val AlarmMuted = Color(0xFF9AA4B2)
 
 // 上端のハザードテープ。文字を読まなくても「警告」と分かる記号として置く。
+//
+// 縞の白は #F5F5F5（16.8:1）だと数字より明るく、しかも面積が数字の字画の 1.6 倍あった。
+// 真上に数字より目立つ塊があれば視線はそこで止まる。高さを 28dp から 12dp へ、
+// 縞を 11.6:1 まで落として、記号としては読めるが主役を食わない量に抑える。
 private val HazardRed = Color(0xFFE03A2F)
-private val HazardStripe = Color(0xFFF5F5F5)
+private val HazardStripe = Color(0xFFC9CED6)
 
-private val HazardBarBottomGap = 28.dp
-private val HazardBarHeight = 28.dp
+private val HazardBarBottomGap = 16.dp
+private val HazardBarHeight = 12.dp
 private val HazardStripeWidth = 24.dp
-private val BorderWidth = 3.dp
+
+// この画面には装飾の枠を置かない。
+//
+// 以前は画面全体を赤い枠で囲み、秒に同期して濃さを往復させていた。やめた理由は 2 つある。
+//
+// 1. 端末の角丸と衝突する。枠は直角の長方形で描かれるが、ウィンドウは物理ディスプレイの角まで
+//    広がる（targetSdk 36 なので API 35+ では edge-to-edge が強制される）。角丸の半径は端末ごとに
+//    違うため、四隅が必ず不揃いに切り落とされる。固定値で追いかけることもできない。
+// 2. 情報として重複していた。「秒針として働く」ことが枠の役目だったが、カウントダウンは
+//    ミリ秒を 3 桁・毎フレームで出しており、その役目は数字自体が既に果たしている。
+//
+// なお、仮に枠を残す場合でも明滅（点滅）にはしない。画面の縁は面積が大きく、高コントラストで
+// 点滅させるのは光過敏性発作のリスクがある。この判断は枠を消した今も変わらない。
 
 /** ボタンは画面幅いっぱいには広げない。押し間違えない大きさを保ちつつ、数字を主役に残す。 */
 private const val ActionButtonWidthFraction = 0.62f
@@ -318,19 +345,6 @@ private const val MillisSizeRatio = 0.35f
 /** 縦に収まらなくなるので、いくら幅があってもここまで。 */
 private const val MaxCountdownSize = 80f
 
-/**
- * 画面全体の枠。秒が変わる瞬間に最も濃くなるよう、透明度を1秒周期で往復させる。
- *
- * 明滅（点滅）にはしない。画面の縁は面積が大きく、高コントラストで点滅させるのは
- * 光過敏性発作のリスクがあるうえ、情報を持たない装飾が主役のカウントダウンより目立ってしまう。
- * カウントダウンの秒に同期した脈動なら、画面全体が秒針として働き、主役を打ち消さない。
- */
-private fun borderAlpha(now: Long): Float {
-    val phase = (now % 1000L) / 1000.0
-    val pulse = (1.0 + cos(2.0 * PI * phase)) / 2.0
-    return (0.25 + 0.60 * pulse).toFloat()
-}
-
 @Composable
 private fun AlarmContent(
     title: String,
@@ -339,7 +353,7 @@ private fun AlarmContent(
     onOpen: () -> Unit,
     onComplete: () -> Unit,
 ) {
-    // 現在時刻はここで一元的に刻み、残り時間・状態ラベル・枠の脈動すべてに効かせる。
+    // 現在時刻はここで一元的に刻み、残り時間と状態ラベルの両方に効かせる。
     // 表示中に期限をまたいだ瞬間、そのまま超過の表示へ切り替わる。
     val now = rememberFrameTicker()
     val overdue = now >= deadlineMillis
@@ -347,18 +361,17 @@ private fun AlarmContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(AlarmBackground)
-            .border(BorderWidth, AlarmRed.copy(alpha = borderAlpha(now)))
-            .padding(BorderWidth),
+            .background(AlarmBackground),
     ) {
-        // 中央に寄せた塊の先頭にテープを置き、課題名のすぐ上に来るようにする。
-        // 左右の余白は内側の列にだけ掛ける。テープは帯として読ませたいので端まで渡す。
+        // 面は端まで塗るが、文字とボタンはシステムバーの下に潜らせない。
+        // edge-to-edge が強制される端末では、これが無いとボタンがジェスチャーバーに被る。
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .safeDrawingPadding()
                 // 背の低い端末で数字が伸びても切れないようスクロールを許す。
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = 24.dp),
+                .padding(vertical = 16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -372,21 +385,18 @@ private fun AlarmContent(
                     .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    title,
-                    color = AlarmInk,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp,
-                    textAlign = TextAlign.Center,
-                )
-
-                Spacer(Modifier.height(32.dp))
+                // 残り時間を最上段に置く。叩き起こされて最初に知りたいのはこれで、
+                // 課題名は「何の話か」という文脈なので後で読めばよい。
+                //
                 // 数字を文の途中に置き、上下と合わせて一文として読ませる。
                 // 「あと … で終わらせてください」／「期限を過ぎて … 経過しています」。
                 // 数だけでは進んでいるのか戻っているのか分からないので、状態もこの文が担う。
+                // 数字を挟む語は落とす。ここが明るいと数字と競合して、視線がどちらにも定まらない。
+                // 期限を過ぎたときだけ赤にして、色そのものに状態を持たせる。
+                val sentenceColor = if (overdue) AlarmRed else AlarmMuted
                 Text(
                     if (overdue) "期限を過ぎて" else "あと",
-                    color = AlarmMuted,
+                    color = sentenceColor,
                     fontSize = 14.sp,
                     textAlign = TextAlign.Center,
                 )
@@ -395,13 +405,22 @@ private fun AlarmContent(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     if (overdue) "経過しています" else "で終わらせてください",
-                    color = AlarmInk,
+                    color = sentenceColor,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
                 )
 
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    "「$title」",
+                    color = AlarmInk,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                )
+
                 if (!teacherName.isNullOrBlank()) {
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         "${teacherName}先生が待っています",
                         color = AlarmRed,
@@ -410,7 +429,7 @@ private fun AlarmContent(
                     )
                 }
 
-                Spacer(Modifier.height(48.dp))
+                Spacer(Modifier.height(32.dp))
 
                 Button(
                     onClick = onOpen,
@@ -522,7 +541,8 @@ private fun Countdown(deadlineMillis: Long, now: Long, overdue: Boolean) {
                     append(millisText)
                 }
             },
-            color = AlarmRed,
+            // 画面で最も明るい要素にする。ここが一番でないと、大きさを足しても視線は来ない。
+            color = AlarmNumber,
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,
