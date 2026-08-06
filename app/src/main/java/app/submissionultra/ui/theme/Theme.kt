@@ -59,6 +59,9 @@ fun SubmissionUltraTheme(
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
         typography = Typography,
+        // 渡さないと Card や Dialog だけが M3 既定の角丸（4/8/12/16/28dp）で描かれ、
+        // 自前のカードと食い違う。形も Radius の 3 段階に揃える。
+        shapes = AppShapes,
         content = content,
     )
 }
