@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -47,6 +46,10 @@ import app.submissionultra.ui.AppMessenger
 import app.submissionultra.ui.components.AssignmentCard
 import app.submissionultra.ui.components.HeroCard
 import app.submissionultra.ui.components.ReadinessBanner
+import app.submissionultra.ui.theme.EmphasisScope
+import app.submissionultra.ui.theme.LeadIf
+import app.submissionultra.ui.theme.Radius
+import app.submissionultra.ui.theme.Space
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,51 +81,64 @@ fun HomeScreen(
     val hero = items.firstOrNull()
     val rest = if (items.isEmpty()) emptyList() else items.drop(1)
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("提出物Ultra") }) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onAddAssignment,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("追加") },
-            )
-        },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
-        ) {
-            if (readiness.unmet.isNotEmpty()) {
-                item(key = "readiness") {
-                    ReadinessBanner(report = readiness, onOpenSettings = onOpenSettings)
-                }
-            }
+    // 緊急通知が成立していないなら、この画面の最重要事項は「何に着手すべきか」ではなく
+    // 「鳴らない状態を直すこと」に変わる。主役はそのときバナーへ移り、ヒーローは一段下がる。
+    val emergencyBlocked = !readiness.canFireEmergency
 
-            if (hero == null) {
-                item(key = "empty") { EmptyState() }
-            } else {
-                item(key = "hero-${hero.assignment.id}") {
-                    HeroCard(
-                        item = hero,
-                        onOpen = { onEditAssignment(hero.assignment.id) },
-                        onComplete = { complete(hero.assignment) },
-                    )
+    EmphasisScope("ホーム") {
+        Scaffold(
+            topBar = { TopAppBar(title = { Text("提出物Ultra") }) },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+            floatingActionButton = {
+                ExtendedFloatingActionButton(
+                    onClick = onAddAssignment,
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text("追加") },
+                )
+            },
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = Space.lg),
+                verticalArrangement = Arrangement.spacedBy(Space.md),
+                contentPadding = PaddingValues(vertical = Space.lg),
+            ) {
+                if (readiness.unmet.isNotEmpty()) {
+                    item(key = "readiness") {
+                        LeadIf(emergencyBlocked) {
+                            ReadinessBanner(report = readiness, onOpenSettings = onOpenSettings)
+                        }
+                    }
                 }
-            }
 
-            if (rest.isNotEmpty()) {
-                item(key = "header-rest") { SectionHeader("このあと") }
-                items(rest, key = { it.assignment.id }) { homeItem ->
-                    SwipeToComplete(onComplete = { complete(homeItem.assignment) }) {
-                        AssignmentCard(
-                            item = homeItem,
-                            onClick = { onEditAssignment(homeItem.assignment.id) },
-                        )
+                if (hero == null) {
+                    item(key = "empty") { EmptyState() }
+                } else {
+                    item(key = "hero-${hero.assignment.id}") {
+                        LeadIf(!emergencyBlocked) {
+                            HeroCard(
+                                item = hero,
+                                onOpen = { onEditAssignment(hero.assignment.id) },
+                                onComplete = { complete(hero.assignment) },
+                                emphasized = !emergencyBlocked,
+                            )
+                        }
+                    }
+                }
+
+                if (rest.isNotEmpty()) {
+                    item(key = "header-rest") { SectionHeader("このあと") }
+                    items(rest, key = { it.assignment.id }) { homeItem ->
+                        SwipeToComplete(onComplete = { complete(homeItem.assignment) }) {
+                            AssignmentCard(
+                                item = homeItem,
+                                onClick = { onEditAssignment(homeItem.assignment.id) },
+                                // スワイプと同じ操作を、読み上げからも届くようにする。
+                                onComplete = { complete(homeItem.assignment) },
+                            )
+                        }
                     }
                 }
             }
@@ -155,9 +171,9 @@ private fun SwipeToComplete(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(Radius.md))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = Space.lg),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Icon(
@@ -177,7 +193,7 @@ private fun SectionHeader(text: String) {
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+        modifier = Modifier.padding(top = Space.sm, bottom = Space.xs),
     )
 }
 
@@ -186,9 +202,9 @@ private fun EmptyState() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 64.dp),
+            .padding(top = Space.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(Space.sm),
     ) {
         Text(
             text = "未完了の提出物はありません",

@@ -15,10 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import app.submissionultra.domain.Urgency
 import app.submissionultra.ui.formatCountdownClock
+import app.submissionultra.ui.theme.Space
 import kotlinx.coroutines.delay
 
 /**
@@ -66,7 +65,7 @@ fun CountdownDisplay(
     Column(
         modifier = modifier,
         horizontalAlignment = horizontalAlignment,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(Space.xs),
     ) {
         if (label.isNotEmpty()) {
             Text(
@@ -100,9 +99,3 @@ private fun rememberTickingNow(): Long {
     }
     return now
 }
-
-/** カード用の中サイズ。 */
-val CountdownMedium = 22.sp
-
-/** ヒーロー用の大サイズ。 */
-val CountdownLarge = 40.sp

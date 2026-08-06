@@ -12,8 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import app.submissionultra.readiness.ReadinessReport
+import app.submissionultra.ui.theme.Radius
+import app.submissionultra.ui.theme.Space
+import app.submissionultra.ui.theme.Stroke
 
 /**
  * 緊急通知が成立しない、または推奨設定が不足しているときにホーム上部へ常時表示する警告。
@@ -40,16 +42,24 @@ fun ReadinessBanner(
     }
 
     val container = if (blocking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceVariant
-    val onContainer = if (blocking) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    // error の上に載る文字は onError。今は onPrimary と同じ値だが、意味の違う色に頼ると
+    // 片方を変えたときに赤地の文字だけが読めなくなる。
+    val onContainer = if (blocking) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSurface
+
+    val shape = RoundedCornerShape(Radius.sm)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(shape)
             .background(if (blocking) container else MaterialTheme.colorScheme.surface)
-            .border(1.dp, if (blocking) container else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+            .border(
+                Stroke.hairline,
+                if (blocking) container else MaterialTheme.colorScheme.outline,
+                shape,
+            )
             .clickable(onClick = onOpenSettings)
-            .padding(16.dp),
+            .padding(Space.lg),
     ) {
         Text(
             text = headline,
@@ -60,7 +70,7 @@ fun ReadinessBanner(
             text = body,
             style = MaterialTheme.typography.bodyMedium,
             color = if (blocking) onContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier.padding(top = Space.xs),
         )
     }
 }
