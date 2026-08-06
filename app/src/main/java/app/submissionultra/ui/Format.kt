@@ -7,12 +7,22 @@ import java.time.format.DateTimeFormatter
 private val dateTime = DateTimeFormatter.ofPattern("M月d日(E) HH:mm")
 private val timeOnly = DateTimeFormatter.ofPattern("HH:mm")
 private val dateOnly = DateTimeFormatter.ofPattern("yyyy年M月d日")
+private val dayLabel = DateTimeFormatter.ofPattern("M月d日(E)")
 
 fun formatDateTime(epochMillis: Long): String =
     Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(dateTime)
 
 fun formatTime(epochMillis: Long): String =
     Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(timeOnly)
+
+/**
+ * 「8月10日(月)」のように、時刻を除いた日付を表す。
+ *
+ * 日付と時刻を別々に組みたい場所で使う。時刻を大きな数字として主役に置くとき、
+ * [formatDateTime] のままでは全角14文字になり、大きな文字では画面に収まらない。
+ */
+fun formatDayLabel(epochMillis: Long): String =
+    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(dayLabel)
 
 /** 「2026年7月25日」のように日付だけを表す。 */
 fun formatDate(epochMillis: Long): String =
