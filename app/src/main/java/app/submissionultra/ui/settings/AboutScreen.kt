@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -30,6 +34,13 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
 import app.submissionultra.ui.components.BackTopBar
 import app.submissionultra.ui.formatDate
+import app.submissionultra.ui.theme.EmphasisScope
+import app.submissionultra.ui.theme.ScreenLead
+import app.submissionultra.ui.theme.Space
+import app.submissionultra.ui.theme.SurfaceLevel
+import app.submissionultra.ui.theme.border
+import app.submissionultra.ui.theme.color
+import app.submissionultra.ui.theme.radius
 
 /** アプリ自身の情報。ハードコードせず、インストールされている実物から読み取る。 */
 internal data class AppInfo(
@@ -41,6 +52,9 @@ internal data class AppInfo(
 )
 
 private const val ICON_PX = 144
+
+/** ランチャーアイコンのマスク。間隔ではなくアイコン固有の寸法なので Radius には含めない。 */
+private val AppIconRadius = 20.dp
 
 /** 配布しているライセンス。リポジトリ直下の LICENSE と一致させること。 */
 private const val LICENSE_NAME = "MIT License"
@@ -74,79 +88,101 @@ fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val info = rememberAppInfo()
 
-    Scaffold(
-        topBar = { BackTopBar("このアプリについて", onBack) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            if (info == null) {
-                Text(
-                    "アプリ情報を取得できませんでした",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                return@Column
-            }
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Image(
-                    bitmap = info.icon,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(88.dp)
-                        .clip(RoundedCornerShape(20.dp)),
-                )
-                Text(info.name, style = MaterialTheme.typography.titleLarge)
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-            InfoRow("バージョン", "${info.versionName} (${info.versionCode})")
-            InfoRow("最終更新日", formatDate(info.lastUpdatedMillis))
-            InfoRow("ライセンス", LICENSE_NAME)
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
+    EmphasisScope("このアプリについて") {
+        Scaffold(
+            topBar = { BackTopBar("このアプリについて", onBack) },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        ) { padding ->
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        runCatching {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri()),
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(Space.xl),
+                verticalArrangement = Arrangement.spacedBy(Space.xl),
+            ) {
+                if (info == null) {
+                    Text(
+                        "アプリ情報を取得できませんでした",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    return@Column
+                }
+
+                ScreenLead {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Space.md),
+                    ) {
+                        Image(
+                            bitmap = info.icon,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(RoundedCornerShape(AppIconRadius)),
+                        )
+                        Text(info.name, style = MaterialTheme.typography.titleLarge)
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                InfoRow("バージョン", "${info.versionName} (${info.versionCode})")
+                InfoRow("最終更新日", formatDate(info.lastUpdatedMillis))
+                InfoRow("ライセンス", LICENSE_NAME)
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // 押せることが色だけで伝わっていなかった（青い文字があるだけ）。
+                // 面と枠を与えて、押せる領域そのものを見えるようにする。
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(SurfaceLevel.Raised.radius),
+                    color = SurfaceLevel.Raised.color(),
+                    border = SurfaceLevel.Raised.border(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .clickable {
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, REPOSITORY_URL.toUri()),
+                                    )
+                                }
+                            }
+                            .padding(Space.lg),
+                        horizontalArrangement = Arrangement.spacedBy(Space.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(Space.xs),
+                        ) {
+                            Text(
+                                "ソースコード",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                REPOSITORY_URL,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "ブラウザで開く",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    .padding(vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
+                }
+
                 Text(
-                    "ソースコード",
-                    style = MaterialTheme.typography.bodyLarge,
+                    "このアプリはオープンソースです。誰でもソースコードを読み、自由に利用・改変できます。",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    REPOSITORY_URL,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
             }
-
-            Text(
-                "このアプリはオープンソースです。誰でもソースコードを読み、自由に利用・改変できます。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

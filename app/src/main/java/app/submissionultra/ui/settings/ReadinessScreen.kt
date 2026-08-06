@@ -14,10 +14,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -32,6 +34,10 @@ import app.submissionultra.readiness.ReadinessItem
 import app.submissionultra.readiness.ReadinessReport
 import app.submissionultra.ui.AppMessenger
 import app.submissionultra.ui.components.BackTopBar
+import app.submissionultra.ui.theme.EmphasisScope
+import app.submissionultra.ui.theme.Radius
+import app.submissionultra.ui.theme.ScreenLead
+import app.submissionultra.ui.theme.Space
 import app.submissionultra.ui.theme.okColor
 
 /**
@@ -52,58 +58,65 @@ fun ReadinessScreen(
     // 開いた瞬間に必ず再確認する。
     LaunchedEffect(Unit) { onRefresh() }
 
-    Scaffold(
-        topBar = { BackTopBar("緊急通知の状態", onBack) },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Verdict(canFire = readiness.canFireEmergency, okColor = ok, alertColor = alert)
+    EmphasisScope("緊急通知の状態") {
+        Scaffold(
+            topBar = { BackTopBar("緊急通知の状態", onBack) },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(Space.lg),
+                verticalArrangement = Arrangement.spacedBy(Space.md),
+            ) {
+                // この画面の主役は「鳴るのか、鳴らないのか」の一言。
+                ScreenLead {
+                    Verdict(canFire = readiness.canFireEmergency, okColor = ok, alertColor = alert)
+                }
 
-            readiness.items.forEach { item ->
-                ReadinessRow(
-                    item = item,
-                    okColor = ok,
+                readiness.items.forEach { item ->
+                    ReadinessRow(
+                        item = item,
+                        okColor = ok,
+                        alertColor = alert,
+                        onFix = {
+                            val opened = runCatching {
+                                context.startActivity(ReadinessChecker.settingsIntent(context, item.key))
+                            }.isSuccess
+                            if (!opened) {
+                                messenger.show("設定画面を開けませんでした。端末の設定から操作してください")
+                            }
+                        },
+                    )
+                }
+
+                DeviceOsSection(
                     alertColor = alert,
-                    onFix = {
+                    onOpenAutoStart = {
+                        // ROM 独自の設定画面は非公開のため、開けないことがある。
+                        // その場合は黙って何も起きないのではなく、手動での操作を促す。
                         val opened = runCatching {
-                            context.startActivity(ReadinessChecker.settingsIntent(context, item.key))
+                            context.startActivity(OemPowerSettings.autoStartIntent(context))
                         }.isSuccess
                         if (!opened) {
                             messenger.show("設定画面を開けませんでした。端末の設定から操作してください")
                         }
                     },
                 )
-            }
 
-            DeviceOsSection(
-                alertColor = alert,
-                onOpenAutoStart = {
-                    // ROM 独自の設定画面は非公開のため、開けないことがある。
-                    // その場合は黙って何も起きないのではなく、手動での操作を促す。
-                    val opened = runCatching {
-                        context.startActivity(OemPowerSettings.autoStartIntent(context))
-                    }.isSuccess
-                    if (!opened) {
-                        messenger.show("設定画面を開けませんでした。端末の設定から操作してください")
-                    }
-                },
-            )
-
-            OutlinedButton(
-                onClick = {
-                    onRefresh()
-                    messenger.show("緊急通知の状態を更新しました")
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("状態を更新")
+                // この画面でさせたいのは不足項目を「設定」から直すこと。再確認はその副次。
+                // 全幅のボタンにすると、いちばん大きい操作が「更新」になってしまう。
+                TextButton(
+                    onClick = {
+                        onRefresh()
+                        messenger.show("緊急通知の状態を更新しました")
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                ) {
+                    Text("状態を更新")
+                }
             }
         }
     }
@@ -123,12 +136,12 @@ private fun DeviceOsSection(alertColor: Color, onOpenAutoStart: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(Radius.sm))
             .background(
                 if (restrictive) alertColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
             )
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(Space.lg),
+        verticalArrangement = Arrangement.spacedBy(Space.xs),
     ) {
         Text(
             "この端末の OS",
@@ -151,11 +164,11 @@ private fun DeviceOsSection(alertColor: Color, onOpenAutoStart: () -> Unit) {
                     "許可されているかどうかは、アプリからは確認できません。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = Space.sm),
             )
             OutlinedButton(
                 onClick = onOpenAutoStart,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.padding(top = Space.xs),
             ) {
                 Text("自動起動の設定を開く")
             }
@@ -163,6 +176,10 @@ private fun DeviceOsSection(alertColor: Color, onOpenAutoStart: () -> Unit) {
     }
 }
 
+/**
+ * この画面の主役。ここに数字は無いので、大きさではなく面と位置で主役だと示す。
+ * それでも画面内でいちばん大きい文字にはしておく。
+ */
 @Composable
 private fun Verdict(canFire: Boolean, okColor: Color, alertColor: Color) {
     val container = if (canFire) okColor.copy(alpha = 0.12f) else alertColor.copy(alpha = 0.12f)
@@ -170,14 +187,14 @@ private fun Verdict(canFire: Boolean, okColor: Color, alertColor: Color) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(Radius.sm))
             .background(container)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .padding(Space.lg),
+        verticalArrangement = Arrangement.spacedBy(Space.xs),
     ) {
         Text(
             if (canFire) "この端末で緊急通知は鳴ります" else "緊急通知はまだ鳴りません",
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleLarge,
             color = accent,
         )
         Text(
@@ -207,13 +224,13 @@ private fun ReadinessRow(
     }
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Space.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .padding(top = 4.dp)
-                .size(10.dp)
+                .padding(top = Space.xs)
+                .size(DotSize)
                 .clip(CircleShape)
                 .background(dotColor)
                 .align(Alignment.Top),
@@ -221,6 +238,15 @@ private fun ReadinessRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(item.label, style = MaterialTheme.typography.bodyLarge)
             if (!item.satisfied) {
+                // 必須と推奨の違いをドットの色だけに委ねない。色が読めなくても、
+                // これを直さないと鳴らないのかどうかが分かるようにする。
+                if (item.required) {
+                    Text(
+                        "必須",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = alertColor,
+                    )
+                }
                 Text(
                     item.detail,
                     style = MaterialTheme.typography.bodySmall,
@@ -231,7 +257,11 @@ private fun ReadinessRow(
         if (item.satisfied) {
             Text("OK", style = MaterialTheme.typography.labelLarge, color = okColor)
         } else {
-            OutlinedButton(onClick = onFix) { Text("設定") }
+            // 直させたいのはここ。未達の行にだけ出るので、塗りボタンでも過剰にはならない。
+            Button(onClick = onFix) { Text("設定") }
         }
     }
 }
+
+/** 状態を表すドットの直径。間隔ではなく寸法なので Space には含めない。 */
+private val DotSize = 10.dp
